@@ -1,0 +1,35 @@
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2008
+
+Project("{012DF431-8885-0FB2-0793-D161387D848B}") = "Space Oddity", "Assembly-CSharp-firstpass.csproj", "{C02930E7-1745-951E-DDAC-5E369F222FCB}"
+EndProject
+Project("{012DF431-8885-0FB2-0793-D161387D848B}") = "Space Oddity", "Assembly-CSharp.csproj", "{E5148AC7-00AF-BED1-C021-3BCC8D119E0B}"
+EndProject
+Project("{012DF431-8885-0FB2-0793-D161387D848B}") = "Space Oddity", "Assembly-CSharp-Editor.csproj", "{95062FF1-975D-E74F-42E8-84AB707601AF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C02930E7-1745-951E-DDAC-5E369F222FCB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C02930E7-1745-951E-DDAC-5E369F222FCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C02930E7-1745-951E-DDAC-5E369F222FCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C02930E7-1745-951E-DDAC-5E369F222FCB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5148AC7-00AF-BED1-C021-3BCC8D119E0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5148AC7-00AF-BED1-C021-3BCC8D119E0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5148AC7-00AF-BED1-C021-3BCC8D119E0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5148AC7-00AF-BED1-C021-3BCC8D119E0B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95062FF1-975D-E74F-42E8-84AB707601AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95062FF1-975D-E74F-42E8-84AB707601AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95062FF1-975D-E74F-42E8-84AB707601AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95062FF1-975D-E74F-42E8-84AB707601AF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = Assembly-CSharp.csproj
+	EndGlobalSection
+EndGlobal
