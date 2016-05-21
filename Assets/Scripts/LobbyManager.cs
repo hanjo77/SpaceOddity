@@ -164,7 +164,7 @@ public class LobbyManager : NetworkLobbyManager
 	{
 		Debug.Log("OnClientDisconnect");
 		base.OnClientDisconnect(conn);
-		StopClient();
+		// StopClient();
 		ChangeTo(hostAndJoinRect);
 		ShowLobby(true);
 	}

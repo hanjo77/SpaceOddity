@@ -53,6 +53,7 @@
      <Compile Include="Assets\Mesh Explosion\Internal\MeshExplosion.cs" />
      <Compile Include="Assets\Mesh Explosion\MeshExploder.cs" />
      <Compile Include="Assets\Scripts\ArwingController.cs" />
+     <Compile Include="Assets\Scripts\CameraFollow.cs" />
      <Compile Include="Assets\Scripts\DestructibleObject.cs" />
      <Compile Include="Assets\Scripts\GameHUDBehaviour.cs" />
      <Compile Include="Assets\Scripts\LaserController.cs" />

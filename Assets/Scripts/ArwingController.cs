@@ -3,6 +3,7 @@ using System.Collections;
 using System.Text;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
+using UnityStandardAssets.Utility;
 
 public class ArwingController : NetworkBehaviour
 {
@@ -14,7 +15,7 @@ public class ArwingController : NetworkBehaviour
 	public int maxSpeed;
 	float accel, decel;
 	private Prefs _prefs;
-	private Transform _camera;
+//	private Transform _camera;
 	public Transform arrow;
 	private Transform _arrow;
 	public float arrowDistance = 5f;
@@ -38,25 +39,21 @@ public class ArwingController : NetworkBehaviour
 		color = Color.HSVToRGB (_prefs.colorHue, _prefs.colorSaturation, _prefs.colorLuminance);
 		SetColor (color);
 		CmdSetColor (color);
-		if (!isLocalPlayer)
-			return;
 	}
 
 	public override void OnStartLocalPlayer ()
 	{
 		base.OnStartLocalPlayer ();
-		Debug.Log (isLocalPlayer);
-		// CmdSpawn (gameObject);
 		Prefs prefs = new Prefs();
 		prefs.Load ();
 		CmdSyncPrefs(prefs);
 		if (!isLocalPlayer) return;
-		if (!transform.Find("camera")) {
-			_camera = GameObject.Find("camera").transform;
-			_camera.position = new Vector3 (0, 0, 0);
-			_camera.localPosition = new Vector3 (0, 0, 0);
-			_camera.parent = transform;
-		}
+		Transform camera = GameObject.Find("camera").transform;
+		CameraFollow follow = camera.GetComponent<CameraFollow> ();
+		follow.SetTarget (transform);
+//			_camera.position = new Vector3 (0, 0, 0);
+//			_camera.localPosition = new Vector3 (0, 0, 0);
+//			_camera.parent = transform;
 	}
 
 	void FixedUpdate()
@@ -113,7 +110,7 @@ public class ArwingController : NetworkBehaviour
 		
 
 		//ANGULAR DYNAMICS//
-		shipRot = transform.Find("arwing").localEulerAngles; //make sure you're getting the right child (the ship).  I don't know how they're numbered in general.
+		shipRot = transform.localEulerAngles; //make sure you're getting the right child (the ship).  I don't know how they're numbered in general.
 
 		//since angles are only stored (0,360), convert to +- 180
 		if (shipRot.x > 180) shipRot.x -= 360;
@@ -137,9 +134,8 @@ public class ArwingController : NetworkBehaviour
 		decel = speed - minSpeed;
 		accel = maxSpeed - speed;
 
-		_camera.localPosition = cameraOffset + new Vector3(0, 0, -deltaSpeed * .02f);
+//		_camera.localPosition = cameraOffset + new Vector3(0, 0, -deltaSpeed * .02f);
 		this.ShowClosestNeighbor ();
-		Debug.Log(cameraOffset);
 	}
 
 	void OnColorChanged(Color c) {
@@ -149,16 +145,15 @@ public class ArwingController : NetworkBehaviour
 	}
 
 	public override void OnNetworkDestroy() {
-		if (!isLocalPlayer)
-			return;
 		base.OnNetworkDestroy ();
-		try {
-			_camera.SetParent (this.transform.root);
-			_camera.position = this.transform.position;
-			_camera.rotation = this.transform.rotation;
-		}
-		finally {
-		}
+//		if (isLocalPlayer) {
+//			try {
+//				_camera.SetParent (this.transform.root);
+//				_camera.position = this.transform.position;
+//				_camera.rotation = this.transform.rotation;
+//			} finally {
+//			}
+//		}
 		NetworkManager.singleton.ServerChangeScene ("Start");
 	}
 
@@ -194,29 +189,30 @@ public class ArwingController : NetworkBehaviour
 
 	void SetColor(Color clr)
 	{       
-		Transform wingTransform = transform.Find("arwing/colorparts");
+		Transform wingTransform = transform.Find("colorparts");
 		wingTransform.GetComponent<MeshRenderer>().material.color = clr; 
 	}
 
 	void SetTranslation(float speed) {
 		float sqrOffset = transform.localPosition.normalized.sqrMagnitude;
 		Vector3 offsetDir = transform.localPosition.normalized;
-		transform.Translate((offsetDir * sqrOffset * 50 + transform.forward * speed) * Time.fixedDeltaTime, Space.World);
+		transform.Translate((offsetDir * sqrOffset * 50 * speed + transform.forward * speed) * Time.fixedDeltaTime, Space.World);
 	}
 
 	void SetRotation(Vector3 rotation, Vector3 angularVelocity) {
-		transform.Rotate(rotation.x * Time.fixedDeltaTime, (rotation.y * Mathf.Abs(rotation.y) * .02f) * Time.fixedDeltaTime, rotation.z * Time.fixedDeltaTime);
-		transform.Find("arwing").Rotate(angularVelocity * Time.fixedDeltaTime);
+		Debug.Log (rotation);
+		// transform.Rotate(rotation.x * Time.fixedDeltaTime, (rotation.y * Mathf.Abs(rotation.y) * .02f) * Time.fixedDeltaTime, rotation.z * Time.fixedDeltaTime);
+		transform.Rotate(angularVelocity * Time.fixedDeltaTime);
 
 		//this limits your rotation, as well as gradually realigns you.  It's a little convoluted, but it's
 		//got the same square magnitude functionality as the angular velocity, plus a constant since x^2
 		//is very small when x is small.  Also realigns faster based on speed.  feel free to tweak
-		transform.Find("arwing").Rotate(-rotation.normalized * .015f * (rotation.sqrMagnitude + 500) * (1 + speed / maxSpeed) * Time.fixedDeltaTime);
+		transform.Rotate(-rotation.normalized * .015f * (rotation.sqrMagnitude + 500) * (1 + speed / maxSpeed) * Time.fixedDeltaTime);
 	}
 
 	void SetLaser()
 	{
-		Transform laser = transform.Find ("arwing/laser");
+		Transform laser = transform.Find ("laser");
 		if (laserActive) {
 			laser.localScale = new Vector3 (.1f, .1f, 1000);
 			laser.localPosition = new Vector3 (0, 0, 500);
@@ -229,8 +225,19 @@ public class ArwingController : NetworkBehaviour
 	// Network Syncronisation //
 	////////////////////////////
 	// Command functions all called on clients and executed on the server
-	[Command] void CmdSetColor (Color c) { SetColor(c); }
-	[Command] void CmdSyncPrefs (Prefs p) { _prefs = p; }
+	[Command] void CmdSetColor (Color c) { 
+		SetColor(c); 
+	}
+	[Command] void CmdSyncPrefs (Prefs p) { 
+		_prefs = p; 
+	}
+	[Command] void CmdSetTranslation (float s) {
+		SetTranslation (s);
+	}
+	[Command] void CmdSetRotation (Vector3 r, Vector3 a) {
+		SetRotation (r, a);
+	}
+
 	// [Command] void CmdSpawn(GameObject g) { NetworkServer.Spawn(g); }
 	[Command]
 	void CmdSpawn()
