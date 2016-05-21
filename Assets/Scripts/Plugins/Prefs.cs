@@ -23,14 +23,19 @@ public class Prefs
 		PlayerPrefs.SetString("playerName", playerName);
 	}
 
-	public void SetAll(ref GameObject space)
+	public void SetAll(ref GameObject arWing)
 	{
+		SetArwingColor (ref arWing);
 	}
 
 	public void SetArwingColor(ref GameObject arwing) {
 
-		GameObject gameObject = arwing.transform.Find("colorparts").gameObject;
-		Renderer renderer = gameObject.GetComponentsInChildren<Renderer> () [0];
-		renderer.material.SetColor("_Color", Color.HSVToRGB(colorHue, colorSaturation, colorLuminance));
+		try {
+			GameObject gameObject = arwing.transform.Find("colorparts").gameObject;
+			Renderer renderer = gameObject.GetComponentsInChildren<Renderer> () [0];
+			renderer.material.SetColor("_Color", Color.HSVToRGB(colorHue, colorSaturation, colorLuminance));
+		}
+		finally {
+		}
 	}
 }

@@ -37,6 +37,7 @@ public class LobbyManager : NetworkLobbyManager
 		}
 		_instance = this;
 		_currentPanel = hostAndJoinRect;
+
 	}
 
 	public void OnCreateHostButtonClick()
@@ -132,7 +133,10 @@ public class LobbyManager : NetworkLobbyManager
 		base.OnClientConnect(conn);
 		ChangeTo(lobbyRect);
 		lobbyTitleText.text = "Lobby";
-		toggleLobbyButton.gameObject.SetActive(false);
+//		GameObject Te = (GameObject)Instantiate(playerPrefab,transform.position,transform.rotation);
+//		ClientScene.RegisterPrefab(Te);
+		// NetworkServer.Spawn (Te);
+		// TryToAddPlayer ();
 	}
 
 	// Gets called when the client has changed into the game scene
@@ -142,8 +146,18 @@ public class LobbyManager : NetworkLobbyManager
 		base.OnLobbyClientSceneChanged(conn);
 		ShowLobby(false);
 		toggleLobbyButton.gameObject.SetActive(true);
+
+		// NetworkServer.Spawn(Te);
+		// TryToAddPlayer ();
+		// playerPrefab.gameObject);
+		// Network.Instantiate (playerPrefab, new Vector3 (53, 34, 0), Quaternion.identity, 0);
 		// Network.Instantiate (playerPrefab, new Vector3 (53, 34, 0), Quaternion.identity, 0);
 	}
+
+//	[Command]
+//	public void CmdSpawn(GameObject prefab) {
+//		NetworkServer.Spawn(prefab);
+//	}
 
 	// Gets called when a client disconnected
 	public override void OnClientDisconnect(NetworkConnection conn)
@@ -155,11 +169,24 @@ public class LobbyManager : NetworkLobbyManager
 		ShowLobby(true);
 	}
 
+	public override void OnServerAddPlayer (NetworkConnection conn, short playerControllerId)
+	{
+		base.OnServerAddPlayer (conn, playerControllerId);
+	}
+		
 	// Gets called when the host has stopped
 	public override void OnStopHost()
 	{
 		Debug.Log("OnStopHost");
 		base.OnStopHost();
 		startButton.gameObject.SetActive(false);
+	}
+
+	private void OnLevelWasLoaded(int level)
+	{
+		if(!_isServer)
+		{
+			// NetworkServer.SpawnObjects();
+		}
 	}
 }

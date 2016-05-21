@@ -6,7 +6,7 @@ public class MarsBehaviour : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-		Debug.Log ("wake up!");
+		// Debug.Log ("wake up!");
 	}
 
 	void OnTriggerEnter(Collider other) {

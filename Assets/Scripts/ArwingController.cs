@@ -7,67 +7,72 @@ using UnityEngine.SceneManagement;
 public class ArwingController : NetworkBehaviour
 {
 	//speed stuff
-	float speed;
+	[SyncVar]float speed;
 	public int cruiseSpeed;
 	float deltaSpeed;//(speed - cruisespeed)
 	public int minSpeed;
 	public int maxSpeed;
-	public Transform arWing;
 	float accel, decel;
 	private Prefs _prefs;
 	private Transform _camera;
 	public Transform arrow;
 	private Transform _arrow;
 	public float arrowDistance = 5f;
-	private int _scene;
-	private Transform _laser;
-	public bool laserActive;
 
-	public Color           color = Color.red;
+	[SyncVar(hook = "OnColorChanged")]Color color = Color.red;
 
 	//turning stuff
-	Vector3 angVel;
-	Vector3 shipRot;
+	[SyncVar]Vector3 angVel;
+	[SyncVar]Vector3 shipRot;
 	public int sensitivity;
 
-	public Vector3 cameraOffset; //I use (0,1,-3)
-	public const int DefaultReliable = 0;
+	//laser
+	[SyncVar]public bool laserActive;
 
-	void Awake() {
-		_scene = SceneManager.GetActiveScene().buildIndex;
-		Debug.Log (_scene);
+	public Vector3 cameraOffset; //I use (0,1,-3)
+
+	void Start() {
 		speed = cruiseSpeed;
-		_camera = GameObject.Find("camera").transform;
-		_camera.position = new Vector3 (0, 0, 0);
-		_camera.localPosition = new Vector3 (0, 0, 0);
-		_camera.parent = arWing;
 		_prefs = new Prefs();
 		_prefs.Load();
 		color = Color.HSVToRGB (_prefs.colorHue, _prefs.colorSaturation, _prefs.colorLuminance);
-		ChangeColor (color);
-		// CmdChangeColor (color);
-		_laser = arWing.Find("arwing/laser");
-		_camera = GameObject.Find ("camera").transform;
+		SetColor (color);
+		CmdSetColor (color);
 		if (!isLocalPlayer)
 			return;
+	}
+
+	public override void OnStartLocalPlayer ()
+	{
+		base.OnStartLocalPlayer ();
+		Debug.Log (isLocalPlayer);
+		// CmdSpawn (gameObject);
+		Prefs prefs = new Prefs();
+		prefs.Load ();
+		CmdSyncPrefs(prefs);
+		if (!isLocalPlayer) return;
+		if (!transform.Find("camera")) {
+			_camera = GameObject.Find("camera").transform;
+			_camera.position = new Vector3 (0, 0, 0);
+			_camera.localPosition = new Vector3 (0, 0, 0);
+			_camera.parent = transform;
+		}
 	}
 
 	void FixedUpdate()
 	{
 		Debug.Log ("Update arwing");
-		// if (!isLocalPlayer) return;
-		if (!transform.Find("camera")) {
-			_camera.parent = arWing;
-		}
-		FireLaser();
-		laserActive = Input.GetButton ("Fire1");
-		//ANGULAR DYNAMICS//
-		shipRot = arWing.Find("arwing").localEulerAngles; //make sure you're getting the right child (the ship).  I don't know how they're numbered in general.
+		// Set ship translation, rotation and draw laser
 
-		//since angles are only stored (0,360), convert to +- 180
-		if (shipRot.x > 180) shipRot.x -= 360;
-		if (shipRot.y > 180) shipRot.y -= 360;
-		if (shipRot.z > 180) shipRot.z -= 360;
+		SetTranslation(speed);
+		SetRotation (shipRot, angVel);
+		SetLaser();
+
+		if (!isLocalPlayer) return;
+
+		// HandleControls ();
+
+		laserActive = Input.GetButton ("Fire1");
 
 		//vertical stick adds to the pitch velocity
 		//         (*************************** this *******************************) is a nice way to get the square without losing the sign of the value
@@ -95,6 +100,25 @@ public class ArwingController : NetworkBehaviour
 			speed -= 5 * Time.fixedDeltaTime;
 		}
 
+		//simple accelerations
+		if (Input.GetKey(KeyCode.Joystick1Button1) || Input.GetKey(KeyCode.LeftShift))
+			speed += accel * Time.fixedDeltaTime;
+		else if (Input.GetKey(KeyCode.Joystick1Button0) || Input.GetKey(KeyCode.Space))
+			speed -= decel * Time.fixedDeltaTime;
+
+		//if not accelerating or decelerating, tend toward cruise, using a similar principle to the accelerations above
+		//(added clamping since it's more of a gradual slowdown/speedup) 
+		else if (Mathf.Abs(deltaSpeed) > .1f)
+			speed -= Mathf.Clamp(deltaSpeed * Mathf.Abs(deltaSpeed), -30, 100) * Time.fixedDeltaTime;
+		
+
+		//ANGULAR DYNAMICS//
+		shipRot = transform.Find("arwing").localEulerAngles; //make sure you're getting the right child (the ship).  I don't know how they're numbered in general.
+
+		//since angles are only stored (0,360), convert to +- 180
+		if (shipRot.x > 180) shipRot.x -= 360;
+		if (shipRot.y > 180) shipRot.y -= 360;
+		if (shipRot.z > 180) shipRot.z -= 360;
 
 		//your angular velocity is higher when going slower, and vice versa.  There probably exists a better function for this.
 		angVel /= 1 + deltaSpeed * .001f;
@@ -102,15 +126,6 @@ public class ArwingController : NetworkBehaviour
 		//this is what limits your angular velocity.  Basically hard limits it at some value due to the square magnitude, you can
 		//tweak where that value is based on the coefficient
 		angVel -= angVel.normalized * angVel.sqrMagnitude * .08f * Time.fixedDeltaTime;
-
-
-		//and finally rotate.  
-		arWing.Find("arwing").Rotate(angVel * Time.fixedDeltaTime);
-
-		//this limits your rotation, as well as gradually realigns you.  It's a little convoluted, but it's
-		//got the same square magnitude functionality as the angular velocity, plus a constant since x^2
-		//is very small when x is small.  Also realigns faster based on speed.  feel free to tweak
-		arWing.Find("arwing").Rotate(-shipRot.normalized * .015f * (shipRot.sqrMagnitude + 500) * (1 + speed / maxSpeed) * Time.fixedDeltaTime);
 
 
 		//LINEAR DYNAMICS//
@@ -122,50 +137,29 @@ public class ArwingController : NetworkBehaviour
 		decel = speed - minSpeed;
 		accel = maxSpeed - speed;
 
-		//simple accelerations
-		if (Input.GetKey(KeyCode.Joystick1Button1) || Input.GetKey(KeyCode.LeftShift))
-			speed += accel * Time.fixedDeltaTime;
-		else if (Input.GetKey(KeyCode.Joystick1Button0) || Input.GetKey(KeyCode.Space))
-			speed -= decel * Time.fixedDeltaTime;
-
-		//if not accelerating or decelerating, tend toward cruise, using a similar principle to the accelerations above
-		//(added clamping since it's more of a gradual slowdown/speedup) 
-		else if (Mathf.Abs(deltaSpeed) > .1f)
-			speed -= Mathf.Clamp(deltaSpeed * Mathf.Abs(deltaSpeed), -30, 100) * Time.fixedDeltaTime;
-
-
-		float sqrOffset = arWing.localPosition.normalized.sqrMagnitude;
-		Vector3 offsetDir = arWing.localPosition.normalized;
-
-
-		//this takes care of realigning after collisions, where the ship gets displaced due to its rigidbody.
-		//I'm pretty sure this is the best way to do it (have the ship and the rig move toward their mutual center)
-		transform.Translate(-offsetDir * sqrOffset * 20 * Time.fixedDeltaTime);
-		//(**************** this ***************) is what actually makes the whole ship move through the world!
-		arWing.Translate((offsetDir * sqrOffset * 50 + arWing.forward * speed) * Time.fixedDeltaTime, Space.World);
-
-		//comment this out for starfox, remove the x and z components for shadows of the empire, and leave the whole thing for free roam
-		arWing.Rotate(shipRot.x * Time.fixedDeltaTime, (shipRot.y * Mathf.Abs(shipRot.y) * .02f) * Time.fixedDeltaTime, shipRot.z * Time.fixedDeltaTime);
-		this.ShowClosestNeighbor ();
-
-		//moves camera (make sure you're GetChild()ing the camera's index)
-		//I don't mind directly connecting this to the speed of the ship, because that always changes smoothly
 		_camera.localPosition = cameraOffset + new Vector3(0, 0, -deltaSpeed * .02f);
+		this.ShowClosestNeighbor ();
 		Debug.Log(cameraOffset);
 	}
 
+	void OnColorChanged(Color c) {
+		// _prefs.SetArwingColor (arWing);
+		Renderer renderer = gameObject.GetComponentsInChildren<Renderer> () [0];
+		renderer.material.SetColor("_Color", c);
+	}
+
 	public override void OnNetworkDestroy() {
+		if (!isLocalPlayer)
+			return;
 		base.OnNetworkDestroy ();
-		if (isLocalPlayer) {
-			try {
-				_camera.SetParent (this.transform.root);
-				_camera.position = this.transform.position;
-				_camera.rotation = this.transform.rotation;
-			}
-			finally {
-			}
+		try {
+			_camera.SetParent (this.transform.root);
+			_camera.position = this.transform.position;
+			_camera.rotation = this.transform.rotation;
 		}
-		SceneManager.LoadScene ("Start");
+		finally {
+		}
+		NetworkManager.singleton.ServerChangeScene ("Start");
 	}
 
 	private void ShowClosestNeighbor() 
@@ -198,30 +192,50 @@ public class ArwingController : NetworkBehaviour
 		}
 	}
 
-	void ChangeColor(Color clr)
+	void SetColor(Color clr)
 	{       
 		Transform wingTransform = transform.Find("arwing/colorparts");
 		wingTransform.GetComponent<MeshRenderer>().material.color = clr; 
 	}
 
-	void FireLaser()
+	void SetTranslation(float speed) {
+		float sqrOffset = transform.localPosition.normalized.sqrMagnitude;
+		Vector3 offsetDir = transform.localPosition.normalized;
+		transform.Translate((offsetDir * sqrOffset * 50 + transform.forward * speed) * Time.fixedDeltaTime, Space.World);
+	}
+
+	void SetRotation(Vector3 rotation, Vector3 angularVelocity) {
+		transform.Rotate(rotation.x * Time.fixedDeltaTime, (rotation.y * Mathf.Abs(rotation.y) * .02f) * Time.fixedDeltaTime, rotation.z * Time.fixedDeltaTime);
+		transform.Find("arwing").Rotate(angularVelocity * Time.fixedDeltaTime);
+
+		//this limits your rotation, as well as gradually realigns you.  It's a little convoluted, but it's
+		//got the same square magnitude functionality as the angular velocity, plus a constant since x^2
+		//is very small when x is small.  Also realigns faster based on speed.  feel free to tweak
+		transform.Find("arwing").Rotate(-rotation.normalized * .015f * (rotation.sqrMagnitude + 500) * (1 + speed / maxSpeed) * Time.fixedDeltaTime);
+	}
+
+	void SetLaser()
 	{
+		Transform laser = transform.Find ("arwing/laser");
 		if (laserActive) {
-			_laser.localScale = new Vector3 (.1f, .1f, 1000);
-			_laser.localPosition = new Vector3 (0, 0, 500);
+			laser.localScale = new Vector3 (.1f, .1f, 1000);
+			laser.localPosition = new Vector3 (0, 0, 500);
 		} else {
-			_laser.localScale = new Vector3 (.1f, .1f, .1f);
+			laser.localScale = new Vector3 (.1f, .1f, .1f);
 		}
 	}
 		
-//	[Command]
-//	void CmdChangeColor(Color c) {
-//		ChangeColor (c);
-//	}
-
-//	[Command]
-//	void CmdFireLaser() {
-//		FireLaser ();
-//	}
+	////////////////////////////
+	// Network Syncronisation //
+	////////////////////////////
+	// Command functions all called on clients and executed on the server
+	[Command] void CmdSetColor (Color c) { SetColor(c); }
+	[Command] void CmdSyncPrefs (Prefs p) { _prefs = p; }
+	// [Command] void CmdSpawn(GameObject g) { NetworkServer.Spawn(g); }
+	[Command]
+	void CmdSpawn()
+	{
+		NetworkServer.SpawnWithClientAuthority(gameObject, connectionToClient);
+	}
 }
 

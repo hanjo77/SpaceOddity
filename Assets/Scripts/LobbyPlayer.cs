@@ -10,16 +10,15 @@ public class LobbyPlayer : NetworkLobbyPlayer
     [SyncVar(hook = "OnNameChanged")]
     public string playerName;
 
-    void Start()
-    {
-        // activate kick buttons for non local players if we're the server
-        if(isServer && !isLocalPlayer) 
-            kickButton.gameObject.SetActive(true);
+	void Awake() {
+		// activate kick buttons for non local players if we're the server
+		if(isServer && !isLocalPlayer) 
+			kickButton.gameObject.SetActive(true);
 
-        // make sure the name label contains the correct value on creation of the player info object
-        OnNameChanged(playerName);
-    }
-
+		// make sure the name label contains the correct value on creation of the player info object
+		OnNameChanged(playerName);
+	}
+		
     public override void OnClientEnterLobby()
     {
         Debug.Log("OnClientEnterLobby");
