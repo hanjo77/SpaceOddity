@@ -4,6 +4,7 @@ using System.Text;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityStandardAssets.Utility;
+using UnityStandardAssets.CrossPlatformInput;
 
 public class StarshipController : NetworkBehaviour
 {
@@ -29,8 +30,11 @@ public class StarshipController : NetworkBehaviour
 
 	//laser
 	[SyncVar]public bool laserActive;
+	private bool _boost;
 
 	public Vector3 cameraOffset; //I use (0,1,-3)
+
+	public Vector2 touchOrigin = -Vector2.one;
 
 	void Start() {
 		speed = cruiseSpeed;
@@ -77,11 +81,12 @@ public class StarshipController : NetworkBehaviour
 		if (shipRot.y > 180) shipRot.y -= 360;
 		if (shipRot.z > 180) shipRot.z -= 360;
 
+	#if UNITY_WEBGL || UNITY_STANDALONE
+
 		laserActive = Input.GetButton ("Fire1");
 
 		//vertical stick adds to the pitch velocity
 		//         (*************************** this *******************************) is a nice way to get the square without losing the sign of the value
-		Debug.Log(Input.GetAxis("Vertical"));
 		angVel.x += Input.GetAxis("Vertical") * Mathf.Abs(Input.GetAxis("Vertical")) * sensitivity * Time.fixedDeltaTime;
 
 		//horizontal stick adds to the roll and yaw velocity... also thanks to the .5 you can't turn as fast/far sideways as you can pull up/down
@@ -106,8 +111,19 @@ public class StarshipController : NetworkBehaviour
 			speed -= 5 * Time.fixedDeltaTime;
 		}
 
+	#else 
+
+		angVel.x += CrossPlatformInputManager.GetAxis("Vertical") * Mathf.Abs(CrossPlatformInputManager.GetAxis("Vertical")) * sensitivity * Time.fixedDeltaTime;
+		float turn = CrossPlatformInputManager.GetAxis("Horizontal") * Mathf.Abs(CrossPlatformInputManager.GetAxis("Horizontal")) * sensitivity * Time.fixedDeltaTime;
+		angVel.y += turn * .5f;
+		angVel.z -= turn * .5f;
+		_boost = CrossPlatformInputManager.GetButton("Boost");
+		laserActive = CrossPlatformInputManager.GetButton("Shoot");
+
+	#endif
+
 		//simple accelerations
-		if (Input.GetKey(KeyCode.Joystick1Button1) || Input.GetKey(KeyCode.LeftShift))
+		if (_boost || Input.GetKey(KeyCode.Joystick1Button1) || Input.GetKey(KeyCode.LeftShift))
 			speed += accel * Time.fixedDeltaTime;
 		else if (Input.GetKey(KeyCode.Joystick1Button0) || Input.GetKey(KeyCode.X))
 			speed -= decel * Time.fixedDeltaTime;
@@ -116,7 +132,8 @@ public class StarshipController : NetworkBehaviour
 		//(added clamping since it's more of a gradual slowdown/speedup) 
 		else if (Mathf.Abs(deltaSpeed) > .1f)
 			speed -= Mathf.Clamp(deltaSpeed * Mathf.Abs(deltaSpeed), -30, 100) * Time.fixedDeltaTime;
-		
+
+		Debug.Log(CrossPlatformInputManager.GetAxis("Vertical"));
 
 		//your angular velocity is higher when going slower, and vice versa.  There probably exists a better function for this.
 		angVel /= 1 + deltaSpeed * .001f;
@@ -146,7 +163,7 @@ public class StarshipController : NetworkBehaviour
 		//is very small when x is small.  Also realigns faster based on speed.  feel free to tweak
 		//		shipRot = -shipRot.normalized * .015f * (shipRot.sqrMagnitude + 500) * (1 + speed / maxSpeed) * Time.fixedDeltaTime;
 
-		Debug.Log (shipRot.ToString ());
+		// Debug.Log (shipRot.ToString ());
 		motion = (transform.forward * speed) * Time.fixedDeltaTime;
 
 
@@ -219,7 +236,12 @@ public class StarshipController : NetworkBehaviour
 		transform.Rotate (rotation);
 	}
 
-	void SetLaser(bool doLaser)
+	public void SetBoost(bool doBoost)
+	{
+		_boost = doBoost;
+	}
+
+	public void SetLaser(bool doLaser)
 	{
 		Transform laser = transform.Find ("laser");
 		if (doLaser) {

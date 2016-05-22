@@ -135,8 +135,7 @@ namespace UnityStandardAssets.CrossPlatformInput
 				UpdateVirtualAxes(new Vector3(pointerDelta.x, pointerDelta.y, 0));
 			}
 		}
-
-
+			
 		public void OnPointerUp(PointerEventData data)
 		{
 			m_Dragging = false;
