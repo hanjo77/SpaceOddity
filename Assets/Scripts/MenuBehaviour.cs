@@ -14,7 +14,7 @@ public class MenuBehaviour : MonoBehaviour {
 	void Start () {
 		_prefs = new Prefs();
 		_prefs.Load();
-		sliColorHue.value = _prefs.colorHue;
+		sliColorHue.value = _prefs.colorHue*(sliColorHue.maxValue+1);
 	}
 	
 	// Update is called once per frame
@@ -28,7 +28,7 @@ public class MenuBehaviour : MonoBehaviour {
 
 	public void OnSliderChangedColorHue(float colorHue)
 	{ 
-		_prefs.colorHue = colorHue;
+		_prefs.colorHue = colorHue / (sliColorHue.maxValue+1);
 		_prefs.SetStarshipColor(ref starship);
 		_prefs.Save ();
 	}

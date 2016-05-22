@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.Networking;
 
 public class MarsBehaviour : MonoBehaviour {
 
@@ -12,17 +13,14 @@ public class MarsBehaviour : MonoBehaviour {
 	void OnTriggerEnter(Collider other) {
 		MeshExploder meshExploder = other.transform.GetComponent<MeshExploder> ();
 		if (other.name != "laser") {
-			StarshipController arwing = other.GetComponentInParent<StarshipController> ();
+			StarshipController starship = other.GetComponentInParent<StarshipController> ();
 			if (meshExploder != null) {
 				meshExploder.Explode ();
-				if (arwing) {
-					if (arwing.isLocalPlayer) {
-						Transform camera = GameObject.Find("camera").transform;
-						camera.position = arwing.transform.position;
-						camera.rotation = arwing.transform.rotation;
-					}
-					GameObject.Destroy(arwing.transform.gameObject);
-				}
+				starship.DestroyStarship();
+				// starship.OnNetworkDestroy ();
+//				if (starship) {
+//					GameObject.Destroy(starship.transform.gameObject);
+//				}
 			}
 		}
 	}

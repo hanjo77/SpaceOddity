@@ -1,4 +1,7 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Net;
+using System.Net.Sockets;
+using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
@@ -35,6 +38,7 @@ public class LobbyManager : NetworkLobbyManager
 		{   Debug.LogError("There can only be one instance of MyLobbyManager at any time.");
 			Destroy(gameObject);
 		}
+		remoteIpInput.text = GetLocalIPAddress ();
 		_instance = this;
 		_currentPanel = hostAndJoinRect;
 
@@ -79,6 +83,11 @@ public class LobbyManager : NetworkLobbyManager
 	public void OnStopButtonClicked()
 	{
 		Debug.Log("OnStopButtonClicked");
+		EndGame ();
+	}
+
+	public void EndGame() {
+		Debug.Log("EndGame");
 		if(_isServer)
 			StopHost();
 		else 
@@ -139,8 +148,13 @@ public class LobbyManager : NetworkLobbyManager
 	{
 		Debug.Log("OnLobbyClientSceneChanged");
 		base.OnLobbyClientSceneChanged(conn);
-		ShowLobby(false);
-		toggleLobbyButton.gameObject.SetActive(true);
+		if (networkSceneName == offlineScene) {
+			ShowLobby(true);
+			toggleLobbyButton.gameObject.SetActive (false);
+		} else {
+			ShowLobby(false);
+			toggleLobbyButton.gameObject.SetActive(true);
+		}
 	}
 
 	// Gets called when a client disconnected
@@ -163,7 +177,6 @@ public class LobbyManager : NetworkLobbyManager
 	{
 		Debug.Log("OnStopHost");
 		base.OnStopHost();
-		StopHost ();
 		startButton.gameObject.SetActive(false);
 	}
 
@@ -173,5 +186,18 @@ public class LobbyManager : NetworkLobbyManager
 		{
 			// NetworkServer.SpawnObjects();
 		}
+	}
+
+	private static string GetLocalIPAddress()
+	{
+		var host = Dns.GetHostEntry(Dns.GetHostName());
+		foreach (var ip in host.AddressList)
+		{
+			if (ip.AddressFamily == AddressFamily.InterNetwork)
+			{
+				return ip.ToString();
+			}
+		}
+		throw new Exception("Local IP Address Not Found!");
 	}
 }

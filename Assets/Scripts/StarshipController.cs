@@ -44,9 +44,9 @@ public class StarshipController : NetworkBehaviour
 	public override void OnStartLocalPlayer ()
 	{
 		base.OnStartLocalPlayer ();
-		Prefs prefs = new Prefs();
-		prefs.Load ();
-		CmdSyncPrefs(prefs);
+//		Prefs prefs = new Prefs();
+//		prefs.Load ();
+//		CmdSyncPrefs(prefs);
 		if (!isLocalPlayer) return;
 		Transform camera = GameObject.Find("camera").transform;
 		CameraFollow follow = camera.GetComponent<CameraFollow> ();
@@ -147,8 +147,6 @@ public class StarshipController : NetworkBehaviour
 		//		shipRot = -shipRot.normalized * .015f * (shipRot.sqrMagnitude + 500) * (1 + speed / maxSpeed) * Time.fixedDeltaTime;
 
 		Debug.Log (shipRot.ToString ());
-		float sqrOffset = transform.localPosition.normalized.sqrMagnitude;
-		Vector3 offsetDir = transform.localPosition.normalized;
 		motion = (transform.forward * speed) * Time.fixedDeltaTime;
 
 
@@ -157,14 +155,22 @@ public class StarshipController : NetworkBehaviour
 	}
 
 	void OnColorChanged(Color c) {
-		GameObject go = gameObject;
 		Renderer renderer = gameObject.GetComponentsInChildren<Renderer> () [0];
 		renderer.material.SetColor("_Color", c);
+	}
+
+	public void DestroyStarship() {
+		LobbyManager.instance.EndGame();
+	}
+
+	void OnDestroy() {
+		NetworkManager.singleton.ServerChangeScene ("Start");
 	}
 
 	public override void OnNetworkDestroy() {
 		base.OnNetworkDestroy ();
 		NetworkManager.singleton.ServerChangeScene ("Start");
+		// RpcGameOver ();
 	}
 
 	private void ShowClosestNeighbor() 
@@ -250,6 +256,13 @@ public class StarshipController : NetworkBehaviour
 	void CmdSpawn()
 	{
 		NetworkServer.SpawnWithClientAuthority(gameObject, connectionToClient);
+	}
+
+	[ClientRpc]
+	void RpcGameOver()
+	{ 
+		GameObject.Destroy(this.gameObject);
+		NetworkManager.singleton.ServerChangeScene ("Start");
 	}
 }
 
