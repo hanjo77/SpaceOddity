@@ -26,6 +26,7 @@ public class LobbyManager : NetworkLobbyManager
 	public InputField           playerNameInput;
 	public Button               startButton;
 	public Button               toggleLobbyButton;
+	public Text					titleText;
 
 	private RectTransform       _currentPanel;
 	private bool                _isServer = false;
@@ -77,6 +78,7 @@ public class LobbyManager : NetworkLobbyManager
 		ServerChangeScene(playScene);
 		startButton.gameObject.SetActive(false);
 		toggleLobbyButton.gameObject.SetActive(true);
+		titleText.gameObject.SetActive (false);
 		ShowLobby(false);
 	}
 
@@ -95,6 +97,7 @@ public class LobbyManager : NetworkLobbyManager
 
 		ShowLobby(true);
 		ChangeTo(hostAndJoinRect);
+		titleText.gameObject.SetActive (true);
 	}
 
 	public void OnToggleLobbyButtuonClicked()
@@ -151,9 +154,11 @@ public class LobbyManager : NetworkLobbyManager
 		if (networkSceneName == offlineScene) {
 			ShowLobby(true);
 			toggleLobbyButton.gameObject.SetActive (false);
+			titleText.gameObject.SetActive (true);
 		} else {
 			ShowLobby(false);
 			toggleLobbyButton.gameObject.SetActive(true);
+			titleText.gameObject.SetActive (false);
 		}
 	}
 
