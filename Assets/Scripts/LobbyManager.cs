@@ -122,7 +122,7 @@ public class LobbyManager : NetworkLobbyManager
 		RectTransform rt = networkPanel.gameObject.GetComponent<RectTransform>();
 		rt.anchoredPosition3D = _showLobbyDuringGame ? 
 			new Vector3(0, 0, 0) : 
-			new Vector3(-225, 0, 0);
+			new Vector3(-300, 0, 0);
 	}
 
 
