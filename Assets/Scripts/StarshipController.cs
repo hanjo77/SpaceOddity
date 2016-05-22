@@ -186,8 +186,8 @@ public class StarshipController : NetworkBehaviour
 
 	public override void OnNetworkDestroy() {
 		base.OnNetworkDestroy ();
+		LobbyManager.instance.EndGame();
 		NetworkManager.singleton.ServerChangeScene ("Start");
-		// RpcGameOver ();
 	}
 
 	private void ShowClosestNeighbor() 

@@ -182,7 +182,9 @@ public class LobbyManager : NetworkLobbyManager
 	{
 		Debug.Log("OnStopHost");
 		base.OnStopHost();
-		startButton.gameObject.SetActive(false);
+		if (startButton) {
+			startButton.gameObject.SetActive(false);
+		}
 	}
 
 	private void OnLevelWasLoaded(int level)
