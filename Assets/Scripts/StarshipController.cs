@@ -5,17 +5,17 @@ using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityStandardAssets.Utility;
 
-public class ArwingController : NetworkBehaviour
+public class StarshipController : NetworkBehaviour
 {
 	//speed stuff
 	[SyncVar]float speed;
+	[SyncVar]Vector3 motion;
 	public int cruiseSpeed;
 	float deltaSpeed;//(speed - cruisespeed)
 	public int minSpeed;
 	public int maxSpeed;
 	float accel, decel;
 	private Prefs _prefs;
-//	private Transform _camera;
 	public Transform arrow;
 	private Transform _arrow;
 	public float arrowDistance = 5f;
@@ -50,29 +50,38 @@ public class ArwingController : NetworkBehaviour
 		if (!isLocalPlayer) return;
 		Transform camera = GameObject.Find("camera").transform;
 		CameraFollow follow = camera.GetComponent<CameraFollow> ();
-		follow.SetTarget (transform);
-//			_camera.position = new Vector3 (0, 0, 0);
-//			_camera.localPosition = new Vector3 (0, 0, 0);
-//			_camera.parent = transform;
+		follow.targetShip = gameObject;
 	}
 
-	void FixedUpdate()
+	void Update()
 	{
-		Debug.Log ("Update arwing");
+		Debug.Log ("Update starship");
 		// Set ship translation, rotation and draw laser
 
-		SetTranslation(speed);
-		SetRotation (shipRot, angVel);
-		SetLaser();
+		SetTranslation(motion);
+		CmdSetTranslation(motion);
+		SetRotation (shipRot);
+		CmdSetRotation (shipRot);
+		SetLaser(laserActive);
+		CmdSetLaser(laserActive);
 
 		if (!isLocalPlayer) return;
 
 		// HandleControls ();
 
+		//ANGULAR DYNAMICS//
+		shipRot = transform.localEulerAngles; // I don't know how they're numbered in general.
+
+		//since angles are only stored (0,360), convert to +- 180
+		if (shipRot.x > 180) shipRot.x -= 360;
+		if (shipRot.y > 180) shipRot.y -= 360;
+		if (shipRot.z > 180) shipRot.z -= 360;
+
 		laserActive = Input.GetButton ("Fire1");
 
 		//vertical stick adds to the pitch velocity
 		//         (*************************** this *******************************) is a nice way to get the square without losing the sign of the value
+		Debug.Log(Input.GetAxis("Vertical"));
 		angVel.x += Input.GetAxis("Vertical") * Mathf.Abs(Input.GetAxis("Vertical")) * sensitivity * Time.fixedDeltaTime;
 
 		//horizontal stick adds to the roll and yaw velocity... also thanks to the .5 you can't turn as fast/far sideways as you can pull up/down
@@ -100,7 +109,7 @@ public class ArwingController : NetworkBehaviour
 		//simple accelerations
 		if (Input.GetKey(KeyCode.Joystick1Button1) || Input.GetKey(KeyCode.LeftShift))
 			speed += accel * Time.fixedDeltaTime;
-		else if (Input.GetKey(KeyCode.Joystick1Button0) || Input.GetKey(KeyCode.Space))
+		else if (Input.GetKey(KeyCode.Joystick1Button0) || Input.GetKey(KeyCode.X))
 			speed -= decel * Time.fixedDeltaTime;
 
 		//if not accelerating or decelerating, tend toward cruise, using a similar principle to the accelerations above
@@ -108,14 +117,6 @@ public class ArwingController : NetworkBehaviour
 		else if (Mathf.Abs(deltaSpeed) > .1f)
 			speed -= Mathf.Clamp(deltaSpeed * Mathf.Abs(deltaSpeed), -30, 100) * Time.fixedDeltaTime;
 		
-
-		//ANGULAR DYNAMICS//
-		shipRot = transform.localEulerAngles; //make sure you're getting the right child (the ship).  I don't know how they're numbered in general.
-
-		//since angles are only stored (0,360), convert to +- 180
-		if (shipRot.x > 180) shipRot.x -= 360;
-		if (shipRot.y > 180) shipRot.y -= 360;
-		if (shipRot.z > 180) shipRot.z -= 360;
 
 		//your angular velocity is higher when going slower, and vice versa.  There probably exists a better function for this.
 		angVel /= 1 + deltaSpeed * .001f;
@@ -134,26 +135,35 @@ public class ArwingController : NetworkBehaviour
 		decel = speed - minSpeed;
 		accel = maxSpeed - speed;
 
+		shipRot = new Vector3(
+			shipRot.x * Time.fixedDeltaTime, 
+			(shipRot.y * Mathf.Abs(shipRot.y) * .02f) * Time.fixedDeltaTime, 
+			shipRot.z * Time.fixedDeltaTime);
+		shipRot = (angVel * Time.fixedDeltaTime);
+		//
+		//this limits your rotation, as well as gradually realigns you.  It's a little convoluted, but it's
+		//got the same square magnitude functionality as the angular velocity, plus a constant since x^2
+		//is very small when x is small.  Also realigns faster based on speed.  feel free to tweak
+		//		shipRot = -shipRot.normalized * .015f * (shipRot.sqrMagnitude + 500) * (1 + speed / maxSpeed) * Time.fixedDeltaTime;
+
+		Debug.Log (shipRot.ToString ());
+		float sqrOffset = transform.localPosition.normalized.sqrMagnitude;
+		Vector3 offsetDir = transform.localPosition.normalized;
+		motion = (transform.forward * speed) * Time.fixedDeltaTime;
+
+
 //		_camera.localPosition = cameraOffset + new Vector3(0, 0, -deltaSpeed * .02f);
 		this.ShowClosestNeighbor ();
 	}
 
 	void OnColorChanged(Color c) {
-		// _prefs.SetArwingColor (arWing);
+		GameObject go = gameObject;
 		Renderer renderer = gameObject.GetComponentsInChildren<Renderer> () [0];
 		renderer.material.SetColor("_Color", c);
 	}
 
 	public override void OnNetworkDestroy() {
 		base.OnNetworkDestroy ();
-//		if (isLocalPlayer) {
-//			try {
-//				_camera.SetParent (this.transform.root);
-//				_camera.position = this.transform.position;
-//				_camera.rotation = this.transform.rotation;
-//			} finally {
-//			}
-//		}
 		NetworkManager.singleton.ServerChangeScene ("Start");
 	}
 
@@ -193,31 +203,25 @@ public class ArwingController : NetworkBehaviour
 		wingTransform.GetComponent<MeshRenderer>().material.color = clr; 
 	}
 
-	void SetTranslation(float speed) {
-		float sqrOffset = transform.localPosition.normalized.sqrMagnitude;
-		Vector3 offsetDir = transform.localPosition.normalized;
-		transform.Translate((offsetDir * sqrOffset * 50 * speed + transform.forward * speed) * Time.fixedDeltaTime, Space.World);
+	void SetTranslation(Vector3 trans) {
+		Debug.Log (trans);
+		transform.Translate (trans, Space.World);
 	}
 
-	void SetRotation(Vector3 rotation, Vector3 angularVelocity) {
+	void SetRotation(Vector3 rotation) {
 		Debug.Log (rotation);
-		// transform.Rotate(rotation.x * Time.fixedDeltaTime, (rotation.y * Mathf.Abs(rotation.y) * .02f) * Time.fixedDeltaTime, rotation.z * Time.fixedDeltaTime);
-		transform.Rotate(angularVelocity * Time.fixedDeltaTime);
-
-		//this limits your rotation, as well as gradually realigns you.  It's a little convoluted, but it's
-		//got the same square magnitude functionality as the angular velocity, plus a constant since x^2
-		//is very small when x is small.  Also realigns faster based on speed.  feel free to tweak
-		transform.Rotate(-rotation.normalized * .015f * (rotation.sqrMagnitude + 500) * (1 + speed / maxSpeed) * Time.fixedDeltaTime);
+		transform.Rotate (rotation);
 	}
 
-	void SetLaser()
+	void SetLaser(bool doLaser)
 	{
 		Transform laser = transform.Find ("laser");
-		if (laserActive) {
+		if (doLaser) {
 			laser.localScale = new Vector3 (.1f, .1f, 1000);
 			laser.localPosition = new Vector3 (0, 0, 500);
 		} else {
 			laser.localScale = new Vector3 (.1f, .1f, .1f);
+			laser.localPosition = new Vector3 (0, 0, 0);
 		}
 	}
 		
@@ -228,14 +232,17 @@ public class ArwingController : NetworkBehaviour
 	[Command] void CmdSetColor (Color c) { 
 		SetColor(c); 
 	}
+	[Command] void CmdSetLaser (bool l) { 
+		SetLaser(l); 
+	}
 	[Command] void CmdSyncPrefs (Prefs p) { 
 		_prefs = p; 
 	}
-	[Command] void CmdSetTranslation (float s) {
+	[Command] void CmdSetTranslation (Vector3 s) {
 		SetTranslation (s);
 	}
-	[Command] void CmdSetRotation (Vector3 r, Vector3 a) {
-		SetRotation (r, a);
+	[Command] void CmdSetRotation (Vector3 r) {
+		SetRotation (r);
 	}
 
 	// [Command] void CmdSpawn(GameObject g) { NetworkServer.Spawn(g); }

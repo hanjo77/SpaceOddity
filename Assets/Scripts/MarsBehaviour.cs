@@ -12,7 +12,7 @@ public class MarsBehaviour : MonoBehaviour {
 	void OnTriggerEnter(Collider other) {
 		MeshExploder meshExploder = other.transform.GetComponent<MeshExploder> ();
 		if (other.name != "laser") {
-			ArwingController arwing = other.GetComponentInParent<ArwingController> ();
+			StarshipController arwing = other.GetComponentInParent<StarshipController> ();
 			if (meshExploder != null) {
 				meshExploder.Explode ();
 				if (arwing) {
@@ -21,7 +21,7 @@ public class MarsBehaviour : MonoBehaviour {
 						camera.position = arwing.transform.position;
 						camera.rotation = arwing.transform.rotation;
 					}
-					// GameObject.Destroy(arwing.transform.gameObject);
+					GameObject.Destroy(arwing.transform.gameObject);
 				}
 			}
 		}

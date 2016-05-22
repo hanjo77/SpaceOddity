@@ -7,7 +7,7 @@ using UnityEngine.Networking;
 public class MenuBehaviour : MonoBehaviour {
 
 	public Slider sliColorHue;
-	public GameObject arwing;
+	public GameObject starship;
 	private Prefs _prefs;
 
 	// Use this for initialization
@@ -29,7 +29,7 @@ public class MenuBehaviour : MonoBehaviour {
 	public void OnSliderChangedColorHue(float colorHue)
 	{ 
 		_prefs.colorHue = colorHue;
-		_prefs.SetArwingColor(ref arwing);
+		_prefs.SetStarshipColor(ref starship);
 		_prefs.Save ();
 	}
 

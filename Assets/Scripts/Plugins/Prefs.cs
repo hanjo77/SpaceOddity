@@ -23,15 +23,15 @@ public class Prefs
 		PlayerPrefs.SetString("playerName", playerName);
 	}
 
-	public void SetAll(ref GameObject arWing)
+	public void SetAll(ref GameObject starship)
 	{
-		SetArwingColor (ref arWing);
+		SetStarshipColor (ref starship);
 	}
 
-	public void SetArwingColor(ref GameObject arwing) {
+	public void SetStarshipColor(ref GameObject starship) {
 
 		try {
-			GameObject gameObject = arwing.transform.Find("colorparts").gameObject;
+			GameObject gameObject = starship.transform.Find("colorparts").gameObject;
 			Renderer renderer = gameObject.GetComponentsInChildren<Renderer> () [0];
 			renderer.material.SetColor("_Color", Color.HSVToRGB(colorHue, colorSaturation, colorLuminance));
 		}

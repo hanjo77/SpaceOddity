@@ -110,7 +110,7 @@ public class LobbyManager : NetworkLobbyManager
 		RectTransform rt = networkPanel.gameObject.GetComponent<RectTransform>();
 		rt.anchoredPosition3D = _showLobbyDuringGame ? 
 			new Vector3(0, 0, 0) : 
-			new Vector3(-360, 0, 0);
+			new Vector3(-225, 0, 0);
 	}
 
 
@@ -119,7 +119,6 @@ public class LobbyManager : NetworkLobbyManager
 	{
 		Debug.Log("OnServerReady");
 		base.OnServerReady (conn);
-		// var newUIElement = Network.Instantiate (playerPrefab, new Vector3 (53, 34, 0), Quaternion.identity, 0);
 	}
 
 	///////////////////////////////
@@ -133,10 +132,6 @@ public class LobbyManager : NetworkLobbyManager
 		base.OnClientConnect(conn);
 		ChangeTo(lobbyRect);
 		lobbyTitleText.text = "Lobby";
-//		GameObject Te = (GameObject)Instantiate(playerPrefab,transform.position,transform.rotation);
-//		ClientScene.RegisterPrefab(Te);
-		// NetworkServer.Spawn (Te);
-		// TryToAddPlayer ();
 	}
 
 	// Gets called when the client has changed into the game scene
@@ -146,25 +141,14 @@ public class LobbyManager : NetworkLobbyManager
 		base.OnLobbyClientSceneChanged(conn);
 		ShowLobby(false);
 		toggleLobbyButton.gameObject.SetActive(true);
-
-		// NetworkServer.Spawn(Te);
-		// TryToAddPlayer ();
-		// playerPrefab.gameObject);
-		// Network.Instantiate (playerPrefab, new Vector3 (53, 34, 0), Quaternion.identity, 0);
-		// Network.Instantiate (playerPrefab, new Vector3 (53, 34, 0), Quaternion.identity, 0);
 	}
-
-//	[Command]
-//	public void CmdSpawn(GameObject prefab) {
-//		NetworkServer.Spawn(prefab);
-//	}
 
 	// Gets called when a client disconnected
 	public override void OnClientDisconnect(NetworkConnection conn)
 	{
 		Debug.Log("OnClientDisconnect");
 		base.OnClientDisconnect(conn);
-		// StopClient();
+		StopClient();
 		ChangeTo(hostAndJoinRect);
 		ShowLobby(true);
 	}
@@ -179,6 +163,7 @@ public class LobbyManager : NetworkLobbyManager
 	{
 		Debug.Log("OnStopHost");
 		base.OnStopHost();
+		StopHost ();
 		startButton.gameObject.SetActive(false);
 	}
 
