@@ -113,6 +113,8 @@ public class StarshipController : NetworkBehaviour
 
 	#else 
 
+		Debug.Log(CrossPlatformInputManager.GetAxis("Vertical"));
+
 		angVel.x += CrossPlatformInputManager.GetAxis("Vertical") * Mathf.Abs(CrossPlatformInputManager.GetAxis("Vertical")) * sensitivity * Time.fixedDeltaTime;
 		float turn = CrossPlatformInputManager.GetAxis("Horizontal") * Mathf.Abs(CrossPlatformInputManager.GetAxis("Horizontal")) * sensitivity * Time.fixedDeltaTime;
 		angVel.y += turn * .5f;
