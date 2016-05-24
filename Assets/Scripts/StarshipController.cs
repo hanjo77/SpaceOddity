@@ -245,6 +245,20 @@ public class StarshipController : NetworkBehaviour
 		_boost = doBoost;
 	}
 
+	public void SetName(string name)
+	{
+		this.name = name;
+	}
+
+	public void Explode()
+	{
+		var meshExploders = transform.GetComponentsInChildren<MeshExploder> ();
+		foreach (MeshExploder meshExploder in meshExploders) {
+			meshExploder.Explode ();
+		}
+		DestroyStarship ();
+	}
+
 	public void SetLaser(bool doLaser)
 	{
 		Transform laser = transform.Find ("laser");
@@ -264,6 +278,9 @@ public class StarshipController : NetworkBehaviour
 	[Command] void CmdSetColor (Color c) { 
 		SetColor(c); 
 	}
+	[Command] void CmdSetName (string name) { 
+		SetName(name); 
+	}
 	[Command] void CmdSetLaser (bool l) { 
 		SetLaser(l); 
 	}
@@ -277,11 +294,15 @@ public class StarshipController : NetworkBehaviour
 		SetRotation (r);
 	}
 
-	// [Command] void CmdSpawn(GameObject g) { NetworkServer.Spawn(g); }
 	[Command]
 	void CmdSpawn()
 	{
-		NetworkServer.SpawnWithClientAuthority(gameObject, connectionToClient);
+		var go = (GameObject)Instantiate(
+			gameObject, 
+			transform.position + new Vector3(0,1,0), 
+			Quaternion.identity);
+
+		NetworkServer.SpawnWithClientAuthority(go, connectionToClient);
 	}
 
 	[ClientRpc]

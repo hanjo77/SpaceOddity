@@ -34,6 +34,7 @@ public class LobbyManager : NetworkLobbyManager
 	private RectTransform       _currentPanel;
 	private bool                _isServer = false;
 	private bool                _showLobbyDuringGame = true;
+	private bool				_isOnlineClient = false;
 
 	void Awake() {
 		if (IsHeadless()) {
@@ -50,6 +51,7 @@ public class LobbyManager : NetworkLobbyManager
 			Destroy(gameObject);
 		}
 		remoteIpInput.text = GetLocalIPAddress ();
+		remoteOnlineIpInput.text = "46.101.17.239";
 		_instance = this;
 		_currentPanel = startRect;
 
@@ -58,6 +60,7 @@ public class LobbyManager : NetworkLobbyManager
 	public void OnCreateHostButtonClick()
 	{
 		Debug.Log("OnCreateHostButtonClick");
+		networkAddress = remoteIpInput.text;
 		if (StartHost()!= null)
 		{
 			_isServer = true;
@@ -103,6 +106,8 @@ public class LobbyManager : NetworkLobbyManager
 	public void OnPlayOnlineButtonClicked()
 	{
 		Debug.Log("OnPlayOnlineButtonClicked");
+		networkAddress = remoteOnlineIpInput.text;
+		_isOnlineClient = true;
 		StartGame ();
 	}
 
@@ -112,18 +117,20 @@ public class LobbyManager : NetworkLobbyManager
 		toggleLobbyButton.gameObject.SetActive(true);
 		titleText.gameObject.SetActive (false);
 		ShowLobby(false);
+		if (_isOnlineClient) {
+			StartClient ();
+		}
 	}
 
 	public void EndGame() {
 		Debug.Log("EndGame");
-		if(_isServer)
-			StopHost();
-		else 
-			StopClient();
-
-		ShowLobby(true);
-		ChangeTo(hostAndJoinRect);
-		titleText.gameObject.SetActive (true);
+		if (!IsHeadless ()) {
+			if(_isServer)
+				StopHost();
+			else 
+				StopClient();
+		}
+		ChangeTo (startRect);
 	}
 
 	public void OnToggleLobbyButtuonClicked()
@@ -179,13 +186,56 @@ public class LobbyManager : NetworkLobbyManager
 		base.OnLobbyClientSceneChanged(conn);
 		if (networkSceneName == offlineScene) {
 			ShowLobby(true);
+			// ChangeTo (startRect);
 			toggleLobbyButton.gameObject.SetActive (false);
 			titleText.gameObject.SetActive (true);
 		} else {
 			ShowLobby(false);
 			toggleLobbyButton.gameObject.SetActive(true);
-			titleText.gameObject.SetActive (false);
+			if (titleText) {
+				titleText.gameObject.SetActive (false);
+			}
 		}
+	}
+
+	public override void OnClientSceneChanged(NetworkConnection conn)
+	{
+		// always become ready.
+		if (!ClientScene.ready) {
+			ClientScene.Ready(conn);
+		}
+
+		if (!this.autoCreatePlayer)
+		{
+			return;
+		}
+
+		bool addPlayer = false;
+		if (ClientScene.localPlayers.Count == 0)
+		{
+			// no players exist
+			addPlayer = true;
+		}
+
+		bool foundPlayer = false;
+		foreach (var playerController in ClientScene.localPlayers)
+		{
+			if (playerController.gameObject != null)
+			{
+				foundPlayer = true;
+				break;
+			}
+		}
+		if (!foundPlayer)
+		{
+			// there are players, but their game objects have all been deleted
+			addPlayer = true;
+		}
+		if (addPlayer)
+		{
+			ClientScene.AddPlayer(0);
+		}
+		OnLobbyClientSceneChanged (conn);
 	}
 
 	// Gets called when a client disconnected
@@ -193,14 +243,14 @@ public class LobbyManager : NetworkLobbyManager
 	{
 		Debug.Log("OnClientDisconnect");
 		base.OnClientDisconnect(conn);
-		StopClient();
-		ChangeTo(hostAndJoinRect);
+		// StopClient();
+		ChangeTo(startRect);
+		titleText.gameObject.SetActive (true);
 		ShowLobby(true);
 	}
 
-	public override void OnServerAddPlayer (NetworkConnection conn, short playerControllerId)
-	{
-		base.OnServerAddPlayer (conn, playerControllerId);
+	public override bool OnLobbyServerSceneLoadedForPlayer(GameObject lobbyPlayer, GameObject gamePlayer) {
+		return true;
 	}
 		
 	// Gets called when the host has stopped
@@ -214,16 +264,15 @@ public class LobbyManager : NetworkLobbyManager
 	}
 
 	public void Respawn(GameObject gameObject) {
-		NetworkServer.Spawn (gameObject);
-	}
-
-	private void OnLevelWasLoaded(int level)
-	{
-		if(!_isServer)
-		{
-			// NetworkServer.SpawnObjects();
+		if (NetworkServer.active) {
+			NetworkServer.Spawn (gameObject);
 		}
 	}
+
+//	private void OnLevelWasLoaded(int level)
+//	{
+//		// NetworkServer.Spawn (gameObject);
+//	}
 
 	private static string GetLocalIPAddress()
 	{

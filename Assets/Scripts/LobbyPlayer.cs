@@ -10,6 +10,8 @@ public class LobbyPlayer : NetworkLobbyPlayer
     [SyncVar(hook = "OnNameChanged")]
     public string playerName;
 
+	void Start() {}
+
 	void Awake() {
 		// activate kick buttons for non local players if we're the server
 		if(isServer && !isLocalPlayer) 

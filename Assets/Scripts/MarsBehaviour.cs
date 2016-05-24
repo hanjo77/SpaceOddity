@@ -11,22 +11,14 @@ public class MarsBehaviour : MonoBehaviour {
 	}
 
 	void OnTriggerEnter(Collider other) {
-		MeshExploder meshExploder = other.transform.GetComponent<MeshExploder> ();
 		if (other.name != "laser") {
 			StarshipController starship = other.GetComponentInParent<StarshipController> ();
-			if (meshExploder != null) {
-				meshExploder.Explode ();
-				starship.DestroyStarship();
-				// starship.OnNetworkDestroy ();
-//				if (starship) {
-//					GameObject.Destroy(starship.transform.gameObject);
-//				}
-			}
+			starship.Explode ();
 		}
 	}
 
 	// Update is called once per frame
 	void Update () {
-	
+
 	}
 }
