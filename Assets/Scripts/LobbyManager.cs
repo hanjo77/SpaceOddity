@@ -7,6 +7,7 @@ using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 using UnityEngine.EventSystems;
+using UnityEngine.Rendering;
 
 public class LobbyManager : NetworkLobbyManager 
 {
@@ -17,12 +18,14 @@ public class LobbyManager : NetworkLobbyManager
 	[Space]                     // Creates a space in the inspector UI
 	[Header("UI Reference")]    // Creates a title above the following variables
 	public RectTransform        networkPanel;
+	public RectTransform        startRect;
 	public RectTransform        hostAndJoinRect;
 	public RectTransform        lobbyRect;
 	public RectTransform        playersRect;
 	public PlayerListBehaviour  playersListBehaviour;
 	public Text                 lobbyTitleText;
 	public InputField           remoteIpInput;
+	public InputField           remoteOnlineIpInput;
 	public InputField           playerNameInput;
 	public Button               startButton;
 	public Button               toggleLobbyButton;
@@ -31,6 +34,13 @@ public class LobbyManager : NetworkLobbyManager
 	private RectTransform       _currentPanel;
 	private bool                _isServer = false;
 	private bool                _showLobbyDuringGame = true;
+
+	void Awake() {
+		if (IsHeadless()) {
+			print("headless mode detected");
+			StartServer();
+		}
+	}
 
 	// Gets called on startup
 	void Start()
@@ -41,7 +51,7 @@ public class LobbyManager : NetworkLobbyManager
 		}
 		remoteIpInput.text = GetLocalIPAddress ();
 		_instance = this;
-		_currentPanel = hostAndJoinRect;
+		_currentPanel = startRect;
 
 	}
 
@@ -75,17 +85,33 @@ public class LobbyManager : NetworkLobbyManager
 	public void OnStartButtonClicked()
 	{
 		Debug.Log("OnStartButtonClicked");
-		ServerChangeScene(playScene);
-		startButton.gameObject.SetActive(false);
-		toggleLobbyButton.gameObject.SetActive(true);
-		titleText.gameObject.SetActive (false);
-		ShowLobby(false);
+		StartGame ();
 	}
 
 	public void OnStopButtonClicked()
 	{
 		Debug.Log("OnStopButtonClicked");
 		EndGame ();
+	}
+
+	public void OnPlayLocalButtonClicked()
+	{
+		Debug.Log("OnPlayLocalButtonClicked");
+		ChangeTo (hostAndJoinRect);
+	}
+
+	public void OnPlayOnlineButtonClicked()
+	{
+		Debug.Log("OnPlayOnlineButtonClicked");
+		StartGame ();
+	}
+
+	public void StartGame() {
+		ServerChangeScene(playScene);
+		startButton.gameObject.SetActive(false);
+		toggleLobbyButton.gameObject.SetActive(true);
+		titleText.gameObject.SetActive (false);
+		ShowLobby(false);
 	}
 
 	public void EndGame() {
@@ -187,6 +213,10 @@ public class LobbyManager : NetworkLobbyManager
 		}
 	}
 
+	public void Respawn(GameObject gameObject) {
+		NetworkServer.Spawn (gameObject);
+	}
+
 	private void OnLevelWasLoaded(int level)
 	{
 		if(!_isServer)
@@ -206,5 +236,10 @@ public class LobbyManager : NetworkLobbyManager
 			}
 		}
 		throw new Exception("Local IP Address Not Found!");
+	}
+
+	// detect headless mode (which has graphicsDeviceType Null)
+	bool IsHeadless() {
+		return SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null;
 	}
 }

@@ -179,17 +179,19 @@ public class StarshipController : NetworkBehaviour
 	}
 
 	public void DestroyStarship() {
-		LobbyManager.instance.EndGame();
+		LobbyManager.instance.Respawn(gameObject);
 	}
 
 	void OnDestroy() {
-		NetworkManager.singleton.ServerChangeScene ("Start");
+		LobbyManager.instance.Respawn (gameObject);
+		// NetworkManager.singleton.ServerChangeScene ("Start");
 	}
 
 	public override void OnNetworkDestroy() {
 		base.OnNetworkDestroy ();
-		LobbyManager.instance.EndGame();
-		NetworkManager.singleton.ServerChangeScene ("Start");
+		LobbyManager.instance.Respawn (gameObject);
+//		LobbyManager.instance.EndGame();
+//		NetworkManager.singleton.ServerChangeScene ("Start");
 	}
 
 	private void ShowClosestNeighbor() 
