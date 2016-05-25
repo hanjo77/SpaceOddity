@@ -38,8 +38,7 @@ public class StarshipController : NetworkBehaviour
 
 	void Start() {
 		speed = cruiseSpeed;
-		_prefs = new Prefs();
-		_prefs.Load();
+		ReapplyPrefs();
 		color = Color.HSVToRGB (_prefs.colorHue, _prefs.colorSaturation, _prefs.colorLuminance);
 		SetColor (color);
 		CmdSetColor (color);
@@ -48,10 +47,9 @@ public class StarshipController : NetworkBehaviour
 	public override void OnStartLocalPlayer ()
 	{
 		base.OnStartLocalPlayer ();
-//		Prefs prefs = new Prefs();
-//		prefs.Load ();
-//		CmdSyncPrefs(prefs);
-		if (!isLocalPlayer) return;
+		Prefs prefs = new Prefs();
+		prefs.Load ();
+		CmdSyncPrefs(prefs);
 		Transform camera = GameObject.Find("camera").transform;
 		CameraFollow follow = camera.GetComponent<CameraFollow> ();
 		follow.targetShip = gameObject;
@@ -263,6 +261,18 @@ public class StarshipController : NetworkBehaviour
 			laser.localScale = new Vector3 (.1f, .1f, .1f);
 			laser.localPosition = new Vector3 (0, 0, 0);
 		}
+	}
+
+	void OnPrefsChanged(Prefs prefs)
+	{
+		_prefs = prefs;
+		ReapplyPrefs(); 
+	}
+
+	public void ReapplyPrefs()
+	{
+		GameObject go = gameObject;
+		_prefs.SetAll(ref go);
 	}
 		
 	////////////////////////////

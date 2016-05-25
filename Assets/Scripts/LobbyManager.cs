@@ -30,6 +30,7 @@ public class LobbyManager : NetworkManager
 	public Button               startButton;
 	public Button               toggleLobbyButton;
 	public Text					titleText;
+	public MenuBehaviour		menuBehaviour;
 
 	private RectTransform       _currentPanel;
 	private bool                _isServer = false;
@@ -91,6 +92,7 @@ public class LobbyManager : NetworkManager
 	public void OnPlayLocalButtonClicked()
 	{
 		Debug.Log("OnPlayLocalButtonClicked");
+		menuBehaviour.ToggleInputFields ();
 		ChangeTo (hostAndJoinRect);
 	}
 
@@ -98,6 +100,7 @@ public class LobbyManager : NetworkManager
 	{
 		Debug.Log("OnPlayOnlineButtonClicked");
 		networkAddress = remoteOnlineIpInput.text;
+		menuBehaviour.ToggleInputFields ();
 		StartClient ();
 		StartGame ();
 	}
@@ -121,6 +124,7 @@ public class LobbyManager : NetworkManager
 				StopClient();
 		}
 		ChangeTo (startRect);
+		menuBehaviour.ToggleInputFields ();
 	}
 
 	public void OnToggleLobbyButtuonClicked()

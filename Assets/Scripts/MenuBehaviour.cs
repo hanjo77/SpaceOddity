@@ -9,6 +9,7 @@ public class MenuBehaviour : MonoBehaviour {
 	public Slider sliColorHue;
 	public GameObject starship;
 	public InputField playerNameInput;
+	public GameObject inputFieldContainer;
 	private Prefs _prefs;
 
 	// Use this for initialization
@@ -22,6 +23,10 @@ public class MenuBehaviour : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 	
+	}
+
+	public void ToggleInputFields() {
+		inputFieldContainer.SetActive (!inputFieldContainer.activeInHierarchy);
 	}
 
 	public void OnNameFieldValueChange(string name) {
@@ -38,6 +43,7 @@ public class MenuBehaviour : MonoBehaviour {
 	void OnApplicationQuit()
 	{ 
 		_prefs.Save();
+		Debug.Log (_prefs.playerName);
 	}
 }
 
