@@ -117,8 +117,8 @@ public class StarshipController : NetworkBehaviour
 
 		angVel.x += CrossPlatformInputManager.GetAxis("Vertical") * Mathf.Abs(CrossPlatformInputManager.GetAxis("Vertical")) * sensitivity * Time.fixedDeltaTime;
 		float turn = CrossPlatformInputManager.GetAxis("Horizontal") * Mathf.Abs(CrossPlatformInputManager.GetAxis("Horizontal")) * sensitivity * Time.fixedDeltaTime;
-		angVel.y += turn * .5f;
-		angVel.z -= turn * .5f;
+		angVel.y += turn;
+		angVel.z -= turn;
 		_boost = CrossPlatformInputManager.GetButton("Boost");
 		laserActive = CrossPlatformInputManager.GetButton("Shoot");
 
@@ -165,11 +165,7 @@ public class StarshipController : NetworkBehaviour
 		//is very small when x is small.  Also realigns faster based on speed.  feel free to tweak
 		//		shipRot = -shipRot.normalized * .015f * (shipRot.sqrMagnitude + 500) * (1 + speed / maxSpeed) * Time.fixedDeltaTime;
 
-		// Debug.Log (shipRot.ToString ());
 		motion = (transform.forward * speed) * Time.fixedDeltaTime;
-
-
-//		_camera.localPosition = cameraOffset + new Vector3(0, 0, -deltaSpeed * .02f);
 		this.ShowClosestNeighbor ();
 	}
 
@@ -190,8 +186,6 @@ public class StarshipController : NetworkBehaviour
 	public override void OnNetworkDestroy() {
 		base.OnNetworkDestroy ();
 		LobbyManager.instance.Respawn (gameObject);
-//		LobbyManager.instance.EndGame();
-//		NetworkManager.singleton.ServerChangeScene ("Start");
 	}
 
 	private void ShowClosestNeighbor() 

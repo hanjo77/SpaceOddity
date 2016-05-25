@@ -8,6 +8,7 @@ public class MenuBehaviour : MonoBehaviour {
 
 	public Slider sliColorHue;
 	public GameObject starship;
+	public InputField playerNameInput;
 	private Prefs _prefs;
 
 	// Use this for initialization
@@ -15,6 +16,7 @@ public class MenuBehaviour : MonoBehaviour {
 		_prefs = new Prefs();
 		_prefs.Load();
 		sliColorHue.value = _prefs.colorHue*(sliColorHue.maxValue+1);
+		playerNameInput.text = _prefs.playerName;
 	}
 	
 	// Update is called once per frame
@@ -31,11 +33,6 @@ public class MenuBehaviour : MonoBehaviour {
 		_prefs.colorHue = colorHue / (sliColorHue.maxValue+1);
 		_prefs.SetStarshipColor(ref starship);
 		_prefs.Save ();
-	}
-
-	public void OnButtonPlayClicke() {
-		_prefs.Save();
-		SceneManager.LoadScene ("Space");
 	}
 
 	void OnApplicationQuit()

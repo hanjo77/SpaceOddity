@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
 
-public class LobbyManager : NetworkLobbyManager 
+public class LobbyManager : NetworkManager 
 {
 	// singleton static instance
 	private static LobbyManager _instance = null;
@@ -34,7 +34,6 @@ public class LobbyManager : NetworkLobbyManager
 	private RectTransform       _currentPanel;
 	private bool                _isServer = false;
 	private bool                _showLobbyDuringGame = true;
-	private bool				_isOnlineClient = false;
 
 	void Awake() {
 		if (IsHeadless()) {
@@ -47,7 +46,8 @@ public class LobbyManager : NetworkLobbyManager
 	void Start()
 	{   
 		if(_instance != null) 
-		{   Debug.LogError("There can only be one instance of MyLobbyManager at any time.");
+		{   
+			Debug.LogError("There can only be one instance of MyLobbyManager at any time.");
 			Destroy(gameObject);
 		}
 		remoteIpInput.text = GetLocalIPAddress ();
@@ -64,11 +64,7 @@ public class LobbyManager : NetworkLobbyManager
 		if (StartHost()!= null)
 		{
 			_isServer = true;
-			ChangeTo(lobbyRect);
-
-			// the start button remains inactive for all others
-			startButton.gameObject.SetActive(true);
-			toggleLobbyButton.gameObject.SetActive(false);
+			StartGame ();
 		}
 	}
 
@@ -77,12 +73,7 @@ public class LobbyManager : NetworkLobbyManager
 		Debug.Log("OnCreateClientButtonClick");
 		networkAddress = remoteIpInput.text;
 		StartClient();
-		ChangeTo(lobbyRect);
-
-		// We change the title to "Connecting ..." in case that the host isn't started yet
-		lobbyTitleText.text = "Connecting ...";
-
-		toggleLobbyButton.gameObject.SetActive(false);
+		StartGame ();
 	}
 
 	public void OnStartButtonClicked()
@@ -107,19 +98,18 @@ public class LobbyManager : NetworkLobbyManager
 	{
 		Debug.Log("OnPlayOnlineButtonClicked");
 		networkAddress = remoteOnlineIpInput.text;
-		_isOnlineClient = true;
+		StartClient ();
 		StartGame ();
 	}
 
 	public void StartGame() {
-		ServerChangeScene(playScene);
+		ServerChangeScene(onlineScene);
 		startButton.gameObject.SetActive(false);
 		toggleLobbyButton.gameObject.SetActive(true);
-		titleText.gameObject.SetActive (false);
-		ShowLobby(false);
-		if (_isOnlineClient) {
-			StartClient ();
+		if (titleText.gameObject != null) {
+			titleText.gameObject.SetActive (false);
 		}
+		ShowLobby(false);
 	}
 
 	public void EndGame() {
@@ -178,66 +168,7 @@ public class LobbyManager : NetworkLobbyManager
 		ChangeTo(lobbyRect);
 		lobbyTitleText.text = "Lobby";
 	}
-
-	// Gets called when the client has changed into the game scene
-	public override void OnLobbyClientSceneChanged(NetworkConnection conn)
-	{
-		Debug.Log("OnLobbyClientSceneChanged");
-		base.OnLobbyClientSceneChanged(conn);
-		if (networkSceneName == offlineScene) {
-			ShowLobby(true);
-			// ChangeTo (startRect);
-			toggleLobbyButton.gameObject.SetActive (false);
-			titleText.gameObject.SetActive (true);
-		} else {
-			ShowLobby(false);
-			toggleLobbyButton.gameObject.SetActive(true);
-			if (titleText) {
-				titleText.gameObject.SetActive (false);
-			}
-		}
-	}
-
-	public override void OnClientSceneChanged(NetworkConnection conn)
-	{
-		// always become ready.
-		if (!ClientScene.ready) {
-			ClientScene.Ready(conn);
-		}
-
-		if (!this.autoCreatePlayer)
-		{
-			return;
-		}
-
-		bool addPlayer = false;
-		if (ClientScene.localPlayers.Count == 0)
-		{
-			// no players exist
-			addPlayer = true;
-		}
-
-		bool foundPlayer = false;
-		foreach (var playerController in ClientScene.localPlayers)
-		{
-			if (playerController.gameObject != null)
-			{
-				foundPlayer = true;
-				break;
-			}
-		}
-		if (!foundPlayer)
-		{
-			// there are players, but their game objects have all been deleted
-			addPlayer = true;
-		}
-		if (addPlayer)
-		{
-			ClientScene.AddPlayer(0);
-		}
-		OnLobbyClientSceneChanged (conn);
-	}
-
+		
 	// Gets called when a client disconnected
 	public override void OnClientDisconnect(NetworkConnection conn)
 	{
@@ -249,10 +180,6 @@ public class LobbyManager : NetworkLobbyManager
 		ShowLobby(true);
 	}
 
-	public override bool OnLobbyServerSceneLoadedForPlayer(GameObject lobbyPlayer, GameObject gamePlayer) {
-		return true;
-	}
-		
 	// Gets called when the host has stopped
 	public override void OnStopHost()
 	{
@@ -268,11 +195,6 @@ public class LobbyManager : NetworkLobbyManager
 			NetworkServer.Spawn (gameObject);
 		}
 	}
-
-//	private void OnLevelWasLoaded(int level)
-//	{
-//		// NetworkServer.Spawn (gameObject);
-//	}
 
 	private static string GetLocalIPAddress()
 	{
