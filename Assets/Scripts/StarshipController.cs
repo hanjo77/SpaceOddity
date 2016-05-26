@@ -16,7 +16,8 @@ public class StarshipController : NetworkBehaviour
 	public int minSpeed;
 	public int maxSpeed;
 	float accel, decel;
-	private Prefs _prefs;
+	// [SyncVar(hook = "OnPrefsChanged")]
+	Prefs _prefs;
 	public Transform arrow;
 	private Transform _arrow;
 	public float arrowDistance = 5f;
@@ -29,47 +30,47 @@ public class StarshipController : NetworkBehaviour
 	public int sensitivity;
 
 	//laser
-	[SyncVar]public bool laserActive;
+	[SyncVar(hook = "OnLaserChanged")]bool laserActive;
 	private bool _boost;
 
 	public Vector3 cameraOffset; //I use (0,1,-3)
 
 	public Vector2 touchOrigin = -Vector2.one;
 
-	void Start() {
+	void Awake() {
 		speed = cruiseSpeed;
-		_prefs = new Prefs();
-		_prefs.Load();
-		color = Color.HSVToRGB (_prefs.colorHue, _prefs.colorSaturation, _prefs.colorLuminance);
+// 		ReapplyPrefs();
 		SetColor (color);
+		if (!isLocalPlayer)
+			return;
 		CmdSetColor (color);
 	}
 
 	public override void OnStartLocalPlayer ()
 	{
 		base.OnStartLocalPlayer ();
-//		Prefs prefs = new Prefs();
-//		prefs.Load ();
-//		CmdSyncPrefs(prefs);
-		if (!isLocalPlayer) return;
-		Transform camera = GameObject.Find("camera").transform;
-		CameraFollow follow = camera.GetComponent<CameraFollow> ();
-		follow.targetShip = gameObject;
+		_prefs = new Prefs();
+		_prefs.Load ();
+		color = Color.HSVToRGB (_prefs.colorHue, _prefs.colorSaturation, _prefs.colorLuminance);
+		// CmdSyncPrefs(prefs);
+		SetColor (color);
+		CmdSetColor (color);
+		TrackCameraTo ();
 	}
-
+		
 	void Update()
 	{
 		Debug.Log ("Update starship");
 		// Set ship translation, rotation and draw laser
-
 		SetTranslation(motion);
-		CmdSetTranslation(motion);
 		SetRotation (shipRot);
-		CmdSetRotation (shipRot);
 		SetLaser(laserActive);
-		CmdSetLaser(laserActive);
 
 		if (!isLocalPlayer) return;
+
+		CmdSetTranslation(motion);
+		CmdSetRotation (shipRot);
+		CmdSetLaser(laserActive);
 
 		// HandleControls ();
 
@@ -174,18 +175,41 @@ public class StarshipController : NetworkBehaviour
 		renderer.material.SetColor("_Color", c);
 	}
 
-	public void DestroyStarship() {
+	public void Respawn()
+	{
 		LobbyManager.instance.Respawn(gameObject);
 	}
 
+	public void TrackCameraTo() 
+	{
+		if (isLocalPlayer)
+		{
+			Transform camera = GameObject.Find("camera").transform;
+			CameraFollow follow = camera.GetComponent<CameraFollow> ();
+			follow.targetShip = gameObject;
+		}
+	}
+
+	void OnLaserChanged(bool l) {
+		laserActive = l;
+		SetLaser (l);
+	}
+
+	public void DestroyStarship() {
+		Respawn ();
+		TrackCameraTo ();
+	}
+
 	void OnDestroy() {
-		LobbyManager.instance.Respawn (gameObject);
+		Respawn ();
 		// NetworkManager.singleton.ServerChangeScene ("Start");
+		TrackCameraTo ();
 	}
 
 	public override void OnNetworkDestroy() {
 		base.OnNetworkDestroy ();
-		LobbyManager.instance.Respawn (gameObject);
+		Respawn ();
+		TrackCameraTo ();
 	}
 
 	private void ShowClosestNeighbor() 
@@ -264,6 +288,18 @@ public class StarshipController : NetworkBehaviour
 			laser.localPosition = new Vector3 (0, 0, 0);
 		}
 	}
+
+	void OnPrefsChanged(Prefs prefs)
+	{
+		_prefs = prefs;
+		ReapplyPrefs(); 
+	}
+
+	public void ReapplyPrefs() {
+		GameObject go = gameObject;
+		_prefs.SetAll(ref go);
+	}
+	
 		
 	////////////////////////////
 	// Network Syncronisation //
@@ -276,7 +312,7 @@ public class StarshipController : NetworkBehaviour
 		SetName(name); 
 	}
 	[Command] void CmdSetLaser (bool l) { 
-		SetLaser(l); 
+		laserActive = l; 
 	}
 	[Command] void CmdSyncPrefs (Prefs p) { 
 		_prefs = p; 
@@ -287,6 +323,7 @@ public class StarshipController : NetworkBehaviour
 	[Command] void CmdSetRotation (Vector3 r) {
 		SetRotation (r);
 	}
+
 
 	[Command]
 	void CmdSpawn()
