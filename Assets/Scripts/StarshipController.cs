@@ -40,10 +40,21 @@ public class StarshipController : NetworkBehaviour
 		ReapplyPrefs ();
 	}
 
+	public override void OnStartClient()
+	{
+		Start ();
+	}
+
+	public override void OnStartServer()
+	{
+		Start ();
+	}
+
 	public override void OnStartLocalPlayer ()
 	{
 		base.OnStartLocalPlayer ();
 		_prefs.Load ();
+		CmdSyncPrefs (_prefs);
 		ReapplyPrefs ();
 		TrackCameraTo ();
 	}
@@ -280,8 +291,9 @@ public class StarshipController : NetworkBehaviour
 
 	void OnPrefsChanged(Prefs prefs)
 	{
-		 _prefs = prefs;
-		 ReapplyPrefs(); 
+		_prefs = prefs;
+		CmdSyncPrefs (prefs);
+		ReapplyPrefs();
 	}
 
 	public void ReapplyPrefs() {
