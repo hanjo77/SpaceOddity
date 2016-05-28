@@ -17,12 +17,10 @@ public class StarshipController : NetworkBehaviour
 	public int maxSpeed;
 	float accel, decel;
 	// [SyncVar(hook = "OnPrefsChanged")]
-	Prefs _prefs;
+	[SyncVar(hook = "OnPrefsChanged")]private Prefs _prefs = new Prefs ();
 	public Transform arrow;
 	private Transform _arrow;
 	public float arrowDistance = 5f;
-
-	[SyncVar(hook = "OnColorChanged")]Color color = Color.red;
 
 	//turning stuff
 	[SyncVar]Vector3 angVel;
@@ -37,24 +35,16 @@ public class StarshipController : NetworkBehaviour
 
 	public Vector2 touchOrigin = -Vector2.one;
 
-	void Awake() {
-		speed = cruiseSpeed;
-// 		ReapplyPrefs();
-		SetColor (color);
-		if (!isLocalPlayer)
-			return;
-		CmdSetColor (color);
+	void Start() {
+		SetSpeed (cruiseSpeed);
+		ReapplyPrefs ();
 	}
 
 	public override void OnStartLocalPlayer ()
 	{
 		base.OnStartLocalPlayer ();
-		_prefs = new Prefs();
 		_prefs.Load ();
-		color = Color.HSVToRGB (_prefs.colorHue, _prefs.colorSaturation, _prefs.colorLuminance);
-		// CmdSyncPrefs(prefs);
-		SetColor (color);
-		CmdSetColor (color);
+		ReapplyPrefs ();
 		TrackCameraTo ();
 	}
 		
@@ -65,12 +55,9 @@ public class StarshipController : NetworkBehaviour
 		SetTranslation(motion);
 		SetRotation (shipRot);
 		SetLaser(laserActive);
+		SetSpeed (speed);
 
 		if (!isLocalPlayer) return;
-
-		CmdSetTranslation(motion);
-		CmdSetRotation (shipRot);
-		CmdSetLaser(laserActive);
 
 		// HandleControls ();
 
@@ -168,6 +155,10 @@ public class StarshipController : NetworkBehaviour
 
 		motion = (transform.forward * speed) * Time.fixedDeltaTime;
 		this.ShowClosestNeighbor ();
+		CmdSetTranslation(motion);
+		CmdSetRotation (shipRot);
+		CmdSetLaser(laserActive);
+		CmdSetSpeed (speed);
 	}
 
 	void OnColorChanged(Color c) {
@@ -182,10 +173,10 @@ public class StarshipController : NetworkBehaviour
 
 	public void TrackCameraTo() 
 	{
-		if (isLocalPlayer)
+		GameObject camera = GameObject.Find ("camera");
+		if (isLocalPlayer && camera != null)
 		{
-			Transform camera = GameObject.Find("camera").transform;
-			CameraFollow follow = camera.GetComponent<CameraFollow> ();
+			CameraFollow follow = camera.transform.GetComponent<CameraFollow> ();
 			follow.targetShip = gameObject;
 		}
 	}
@@ -202,7 +193,6 @@ public class StarshipController : NetworkBehaviour
 
 	void OnDestroy() {
 		Respawn ();
-		// NetworkManager.singleton.ServerChangeScene ("Start");
 		TrackCameraTo ();
 	}
 
@@ -242,12 +232,6 @@ public class StarshipController : NetworkBehaviour
 		}
 	}
 
-	void SetColor(Color clr)
-	{       
-		Transform wingTransform = transform.Find("colorparts");
-		wingTransform.GetComponent<MeshRenderer>().material.color = clr; 
-	}
-
 	void SetTranslation(Vector3 trans) {
 		Debug.Log (trans);
 		transform.Translate (trans, Space.World);
@@ -261,6 +245,11 @@ public class StarshipController : NetworkBehaviour
 	public void SetBoost(bool doBoost)
 	{
 		_boost = doBoost;
+	}
+
+	public void SetSpeed(float s)
+	{
+		speed = s;
 	}
 
 	public void SetName(string name)
@@ -291,13 +280,13 @@ public class StarshipController : NetworkBehaviour
 
 	void OnPrefsChanged(Prefs prefs)
 	{
-		_prefs = prefs;
-		ReapplyPrefs(); 
+		 _prefs = prefs;
+		 ReapplyPrefs(); 
 	}
 
 	public void ReapplyPrefs() {
-		GameObject go = gameObject;
-		_prefs.SetAll(ref go);
+		 GameObject go = gameObject;
+		 _prefs.SetAll(ref go);
 	}
 	
 		
@@ -305,8 +294,8 @@ public class StarshipController : NetworkBehaviour
 	// Network Syncronisation //
 	////////////////////////////
 	// Command functions all called on clients and executed on the server
-	[Command] void CmdSetColor (Color c) { 
-		SetColor(c); 
+	[Command] void CmdSetSpeed (float s) { 
+		SetSpeed(s); 
 	}
 	[Command] void CmdSetName (string name) { 
 		SetName(name); 
