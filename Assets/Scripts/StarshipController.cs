@@ -16,11 +16,12 @@ public class StarshipController : NetworkBehaviour
 	public int minSpeed;
 	public int maxSpeed;
 	float accel, decel;
-	// [SyncVar(hook = "OnPrefsChanged")]
 	[SyncVar(hook = "OnPrefsChanged")]private Prefs _prefs = new Prefs ();
 	public Transform arrow;
 	private Transform _arrow;
 	public float arrowDistance = 5f;
+	public Prefs prefs { get { return _prefs; } }
+
 
 	//turning stuff
 	[SyncVar]Vector3 angVel;

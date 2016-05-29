@@ -25,7 +25,10 @@ public class MenuBehaviour : MonoBehaviour {
 	}
 
 	public void OnNameFieldValueChange(string name) {
-		_prefs.playerName = name;
+		if (name != "") {
+			_prefs.playerName = name;
+			_prefs.Save ();
+		}
 	}
 
 	public void OnSliderChangedColorHue(float colorHue)

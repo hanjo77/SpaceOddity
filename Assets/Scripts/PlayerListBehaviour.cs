@@ -6,12 +6,13 @@ using System.Collections.Generic;
 public class PlayerListBehaviour : MonoBehaviour 
 {        
     public  RectTransform       playersRect;
+	public PlayerInfoBehaviour playerInfo;
 
     private VerticalLayoutGroup _layout;
-    private List<LobbyPlayer>   _lobbyPlayerList = new List<LobbyPlayer>();
+	private List<PlayerInfoBehaviour>   _playerList = new List<PlayerInfoBehaviour>();
 
 
-    public List<LobbyPlayer> LobbyPlayerList { get { return _lobbyPlayerList; } }
+	public List<PlayerInfoBehaviour> PlayerList { get { return _playerList; } }
 
     public void OnEnable()
     {
@@ -22,16 +23,41 @@ public class PlayerListBehaviour : MonoBehaviour
     {
         // workaround used in the example network lobby of Unity. 
         // The layout manager doesn't update correctly from time to time
-        if(_layout)
-            _layout.childAlignment = Time.frameCount % 2 == 0 ? 
-                TextAnchor.UpperCenter : 
-                TextAnchor.UpperLeft;
+		if (_layout) {
+//			_layout.childAlignment = Time.frameCount % 2 == 0 ? 
+//                TextAnchor.UpperCenter : 
+//                TextAnchor.UpperLeft;
+			UpdatePlayerList ();
+		}
+
     }
 
-    public void AddPlayer(LobbyPlayer lobbyPlayer)
-    {
-        RectTransform trfrm = lobbyPlayer.gameObject.GetComponent<RectTransform>();
-        trfrm.SetParent(playersRect, false);
-        _lobbyPlayerList.Add(lobbyPlayer);
-    }
+	public void AddPlayer(PlayerInfoBehaviour lobbyPlayer)
+	{
+		RectTransform trfrm = lobbyPlayer.gameObject.GetComponent<RectTransform>();
+		trfrm.SetParent(playersRect, false);
+		_playerList.Add(lobbyPlayer);
+	}
+
+	public void ResetPlayerList()
+	{
+		_playerList = new List<PlayerInfoBehaviour>();
+		foreach (Transform t in playersRect.transform) {
+			GameObject.Destroy(t.gameObject);
+		}
+	}
+
+	public void UpdatePlayerList()
+	{
+		ResetPlayerList ();
+		var players = GameObject.FindGameObjectsWithTag("Player");
+		foreach(GameObject p in players) {
+			StarshipController starShip = p.GetComponent<StarshipController> ();
+			if (starShip) {
+				PlayerInfoBehaviour info = Instantiate (playerInfo);
+				info.SetContent (starShip);
+				AddPlayer (info);
+			}
+		}
+	}
 }

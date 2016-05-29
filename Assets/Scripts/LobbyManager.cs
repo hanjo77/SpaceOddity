@@ -47,7 +47,7 @@ public class LobbyManager : NetworkManager
 	{   
 		if(_instance != null) 
 		{   
-			Debug.LogError("There can only be one instance of MyLobbyManager at any time.");
+			Debug.LogError("There can only be one instance of MyNetworManager at any time.");
 			Destroy(gameObject);
 		}
 		remoteIpInput.text = GetLocalIPAddress ();
@@ -111,7 +111,7 @@ public class LobbyManager : NetworkManager
 
 	public void StartGame() {
 		ServerChangeScene(onlineScene);
-		startButton.gameObject.SetActive(false);
+		// startButton.gameObject.SetActive(false);
 		toggleLobbyButton.gameObject.SetActive(true);
 		if (titleText.gameObject != null) {
 			titleText.gameObject.SetActive (false);
@@ -156,7 +156,7 @@ public class LobbyManager : NetworkManager
 		RectTransform rt = networkPanel.gameObject.GetComponent<RectTransform>();
 		rt.anchoredPosition3D = _showLobbyDuringGame ? 
 			new Vector3(0, 0, 0) : 
-			new Vector3(-300, 0, 0);
+			new Vector3(-1300, 0, 0);
 	}
 
 
