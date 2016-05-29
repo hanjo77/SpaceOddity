@@ -36,6 +36,8 @@ public class StarshipController : NetworkBehaviour
 
 	public Vector2 touchOrigin = -Vector2.one;
 
+	[SyncVar]int energy;
+
 	void Start() {
 		SetSpeed (cruiseSpeed);
 		ReapplyPrefs ();

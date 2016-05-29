@@ -13,6 +13,6 @@ public class PlayerInfoBehaviour : MonoBehaviour
 		Prefs prefs = controller.prefs;
 		nameText.text = prefs.playerName;
 		scoreText.color = Color.HSVToRGB (prefs.colorHue, prefs.colorSaturation, prefs.colorLuminance);
-		scoreText.text = "0";
+		scoreText.text = prefs.score.ToString();
 	}
 }

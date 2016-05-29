@@ -6,6 +6,7 @@ public class Prefs
 	public float colorSaturation;
 	public float colorLuminance;
 	public string playerName;
+	public int score;
 
 	public void Load()
 	{
@@ -13,6 +14,7 @@ public class Prefs
 		colorSaturation = PlayerPrefs.GetFloat("colorSaturation", 1f);
 		colorLuminance = PlayerPrefs.GetFloat("colorLuminance", 1f);
 		playerName = PlayerPrefs.GetString("playerName");
+		score = PlayerPrefs.GetInt ("score");
 	}
 
 	public void Save()
@@ -21,6 +23,7 @@ public class Prefs
 		PlayerPrefs.SetFloat("colorSaturation", colorSaturation);
 		PlayerPrefs.SetFloat("colorLuminance", colorLuminance);
 		PlayerPrefs.SetString("playerName", playerName);
+		PlayerPrefs.SetInt ("score", score);
 	}
 
 	public void SetAll(ref GameObject starship)
