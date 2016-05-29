@@ -76,6 +76,13 @@ public class LobbyManager : NetworkManager
 		StartGame ();
 	}
 
+	public void OnBackToStartButtonClick()
+	{
+		Debug.Log("OnBackToStartButtonClick");
+		ChangeTo (startRect);
+	}
+
+
 	public void OnStartButtonClicked()
 	{
 		Debug.Log("OnStartButtonClicked");
@@ -114,12 +121,16 @@ public class LobbyManager : NetworkManager
 
 	public void EndGame() {
 		Debug.Log("EndGame");
-		if (!IsHeadless ()) {
-			if(_isServer)
-				StopHost();
-			else 
-				StopClient();
-		}
+
+		if (IsHeadless ()) return;
+		
+		if(_isServer)
+			StopHost();
+		else 
+			StopClient();
+		Network.Disconnect();
+		MasterServer.UnregisterHost();
+		titleText.gameObject.SetActive (true);
 		ChangeTo (startRect);
 	}
 
