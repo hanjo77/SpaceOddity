@@ -16,11 +16,10 @@ public class StarshipController : NetworkBehaviour
 	public int minSpeed;
 	public int maxSpeed;
 	float accel, decel;
-	[SyncVar(hook = "OnPrefsChanged")]private Prefs _prefs = new Prefs ();
+	[SyncVar(hook = "OnPrefsChanged")]public Prefs prefs = new Prefs ();
 	public Transform arrow;
 	private Transform _arrow;
 	public float arrowDistance = 5f;
-	public Prefs prefs { get { return _prefs; } }
 
 
 	//turning stuff
@@ -36,6 +35,7 @@ public class StarshipController : NetworkBehaviour
 
 	public Vector2 touchOrigin = -Vector2.one;
 
+	public int maxEnergy = 100;
 	[SyncVar]int energy;
 
 	void Start() {
@@ -56,8 +56,8 @@ public class StarshipController : NetworkBehaviour
 	public override void OnStartLocalPlayer ()
 	{
 		base.OnStartLocalPlayer ();
-		_prefs.Load ();
-		CmdSyncPrefs (_prefs);
+		prefs.Load ();
+		CmdSyncPrefs (prefs);
 		ReapplyPrefs ();
 		TrackCameraTo ();
 	}
@@ -237,6 +237,9 @@ public class StarshipController : NetworkBehaviour
 				_arrow.localPosition = new Vector3 (0, 0, 0);
 				_arrow.transform.parent = transform;
 			}
+			Prefs otherPrefs = closestPlayer.GetComponent<StarshipController> ().prefs;
+			Renderer renderer = _arrow.transform.GetComponentsInChildren<Renderer> () [0];
+			renderer.material.SetColor("_Color", Color.HSVToRGB(otherPrefs.colorHue, otherPrefs.colorSaturation, otherPrefs.colorLuminance));
 			_arrow.LookAt (closestPlayer.transform.position);
 			_arrow.transform.position = Vector3.MoveTowards (myPlayer.transform.position, closestPlayer.transform.position, arrowDistance);
 		}
@@ -294,14 +297,14 @@ public class StarshipController : NetworkBehaviour
 
 	void OnPrefsChanged(Prefs prefs)
 	{
-		_prefs = prefs;
-		CmdSyncPrefs (prefs);
+		this.prefs = prefs;
+		CmdSyncPrefs (this.prefs);
 		ReapplyPrefs();
 	}
 
 	public void ReapplyPrefs() {
 		 GameObject go = gameObject;
-		 _prefs.SetAll(ref go);
+		 prefs.SetAll(ref go);
 	}
 	
 		
@@ -319,7 +322,7 @@ public class StarshipController : NetworkBehaviour
 		laserActive = l; 
 	}
 	[Command] void CmdSyncPrefs (Prefs p) { 
-		_prefs = p; 
+		prefs = p; 
 	}
 	[Command] void CmdSetTranslation (Vector3 s) {
 		SetTranslation (s);
@@ -327,7 +330,6 @@ public class StarshipController : NetworkBehaviour
 	[Command] void CmdSetRotation (Vector3 r) {
 		SetRotation (r);
 	}
-
 
 	[Command]
 	void CmdSpawn()

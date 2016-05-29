@@ -1,17 +1,20 @@
 ﻿<Properties StartupItem="Assembly-CSharp.csproj">
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="Unity.Instance.Unity Editor" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/LaserController.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/PlayerInfoBehaviour.cs">
     <Files>
+      <File FileName="Assets/Scripts/MenuBehaviour.cs" Line="12" Column="20" />
       <File FileName="Assets/Standard Assets/CrossPlatformInput/Scripts/PlatformSpecific/StandaloneInput.cs" Line="1" Column="1" />
       <File FileName="Assets/Standard Assets/CrossPlatformInput/Scripts/MobileControlRig.cs" Line="1" Column="1" />
       <File FileName="Assets/Standard Assets/CrossPlatformInput/Scripts/TouchPad.cs" Line="1" Column="1" />
-      <File FileName="Assets/Scripts/StarshipController.cs" Line="1" Column="1" />
-      <File FileName="Assets/Scripts/LobbyManager.cs" Line="1" Column="1" />
+      <File FileName="Assets/Scripts/StarshipController.cs" Line="39" Column="29" />
+      <File FileName="Assets/Scripts/LobbyManager.cs" Line="114" Column="6" />
       <File FileName="Assets/Scripts/CameraFollow.cs" Line="1" Column="1" />
-      <File FileName="Assets/Scripts/MenuBehaviour.cs" Line="1" Column="1" />
-      <File FileName="Assets/Scripts/LobbyPlayer.cs" Line="1" Column="1" />
       <File FileName="Assets/Scripts/MarsBehaviour.cs" Line="1" Column="1" />
-      <File FileName="Assets/Scripts/LaserController.cs" Line="11" Column="22" />
+      <File FileName="Assets/Scripts/LaserController.cs" Line="21" Column="1" />
+      <File FileName="Assets/Scripts/PlayerListBehaviour.cs" Line="55" Column="21" />
+      <File FileName="Assets/Scripts/PlayerInfoBehaviour.cs" Line="16" Column="42" />
+      <File FileName="Assets/Scripts/Plugins/Prefs.cs" Line="26" Column="39" />
+      <File FileName="Assets/Scripts/DestructibleObject.cs" Line="1" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
@@ -27,6 +30,9 @@
       <Breakpoint file="/Users/hanjo/Workspace/Unity3D/Space Oddity/Assets/Standard Assets/CrossPlatformInput/Scripts/TouchPad.cs" line="135" column="77" />
       <Breakpoint file="/Users/hanjo/Workspace/Unity3D/Space Oddity/Assets/Scripts/StarshipController.cs" line="54" column="1" />
       <Breakpoint file="/Users/hanjo/Workspace/Unity3D/Space Oddity/Assets/Scripts/LobbyManager.cs" line="193" column="21" />
+      <Breakpoint file="/Users/hanjo/Workspace/Space Oddity/Assets/Scripts/MenuBehaviour.cs" line="43" column="1" />
+      <Breakpoint file="/Users/hanjo/Workspace/Space Oddity/Assets/Scripts/PlayerListBehaviour.cs" line="57" column="1" />
+      <Breakpoint file="/Users/hanjo/Workspace/Space Oddity/Assets/Scripts/LobbyManager.cs" line="50" column="1" />
     </BreakpointStore>
   </MonoDevelop.Ide.DebuggingService.Breakpoints>
   <MonoDevelop.Ide.DebuggingService.PinnedWatches />

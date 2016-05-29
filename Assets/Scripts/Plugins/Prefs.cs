@@ -26,6 +26,16 @@ public class Prefs
 		PlayerPrefs.SetInt ("score", score);
 	}
 
+	public void ScoreAdd() {
+		score++;
+		Save ();
+	}
+
+	public void ScoreReduce() {
+		score--;
+		Save ();
+	}
+
 	public void SetAll(ref GameObject starship)
 	{
 		SetStarshipColor (ref starship);
