@@ -124,9 +124,9 @@ public class LobbyManager : NetworkManager
 
 		if (IsHeadless ()) return;
 
-		DropConnection ();
 		titleText.gameObject.SetActive (true);
 		ChangeTo (startRect);
+		DropConnection ();
 	}
 
 	public void OnToggleLobbyButtuonClicked()
@@ -234,6 +234,7 @@ public class LobbyManager : NetworkManager
 		Destroy (this.gameObject);
 		Destroy (this);
 		_instance = null;
+		SceneManager.LoadScene ("Start");
 	}
 
 	void OnApplicationQuit()

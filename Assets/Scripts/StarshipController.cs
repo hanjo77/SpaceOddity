@@ -15,6 +15,7 @@ public class StarshipController : NetworkBehaviour
 	float deltaSpeed;//(speed - cruisespeed)
 	public int minSpeed;
 	public int maxSpeed;
+	public float maxArrowScale = 1;
 	float accel, decel;
 	[SyncVar(hook = "OnPrefsChanged")]private Prefs _prefs = new Prefs();
 	public Transform arrow;
@@ -244,11 +245,26 @@ public class StarshipController : NetworkBehaviour
 			Renderer renderer = _arrow.transform.GetComponentsInChildren<Renderer> () [0];
 			renderer.material.SetColor("_Color", Color.HSVToRGB(otherPrefs.colorHue, otherPrefs.colorSaturation, otherPrefs.colorLuminance));
 			_arrow.LookAt (closestPlayer.transform.position);
+			_arrow.localScale = GetArrowScale (myPlayer, closestPlayer);
 			_arrow.transform.position = Vector3.MoveTowards (myPlayer.transform.position, closestPlayer.transform.position, arrowDistance);
 		}
 		else if (_arrow != null) {
 			GameObject.Destroy (_arrow.gameObject);
 			_arrow = null;
+		}
+	}
+
+	Vector3 GetArrowScale(GameObject myPlayer, GameObject otherPlayer)
+	{
+		Vector3 pos1 = myPlayer.transform.position;
+		Vector3 pos2 = otherPlayer.transform.position;
+		float dist = Vector3.Distance (pos1, pos2);
+		if (dist < 2 * arrowDistance) {
+			return new Vector3(0, 0, 0);
+		} else {
+			float scale = dist - (2 * arrowDistance);
+			scale = (scale < maxArrowScale ? scale : maxArrowScale);
+			return new Vector3 (scale, scale, scale);
 		}
 	}
 
