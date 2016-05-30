@@ -16,10 +16,11 @@ public class StarshipController : NetworkBehaviour
 	public int minSpeed;
 	public int maxSpeed;
 	float accel, decel;
-	[SyncVar(hook = "OnPrefsChanged")]public Prefs prefs = new Prefs ();
+	[SyncVar(hook = "OnPrefsChanged")]private Prefs _prefs = new Prefs();
 	public Transform arrow;
 	private Transform _arrow;
 	public float arrowDistance = 5f;
+	public Prefs prefs { get { return _prefs; } }
 
 
 	//turning stuff
@@ -56,8 +57,8 @@ public class StarshipController : NetworkBehaviour
 	public override void OnStartLocalPlayer ()
 	{
 		base.OnStartLocalPlayer ();
-		prefs.Load ();
-		CmdSyncPrefs (prefs);
+		_prefs.Load ();
+		CmdSyncPrefs (_prefs);
 		ReapplyPrefs ();
 		TrackCameraTo ();
 	}
@@ -127,7 +128,7 @@ public class StarshipController : NetworkBehaviour
 	#endif
 
 		//simple accelerations
-		if (_boost || Input.GetKey(KeyCode.Joystick1Button1) || Input.GetKey(KeyCode.LeftShift))
+		if (_boost || Input.GetKey(KeyCode.Joystick1Button1) || Input.GetKey(KeyCode.RightShift))
 			speed += accel * Time.fixedDeltaTime;
 		else if (Input.GetKey(KeyCode.Joystick1Button0) || Input.GetKey(KeyCode.X))
 			speed -= decel * Time.fixedDeltaTime;
@@ -182,7 +183,9 @@ public class StarshipController : NetworkBehaviour
 
 	public void Respawn()
 	{
-		LobbyManager.instance.Respawn(gameObject);
+		if (LobbyManager.instance) {
+			LobbyManager.instance.Respawn(gameObject);
+		}
 	}
 
 	public void TrackCameraTo() 
@@ -297,8 +300,7 @@ public class StarshipController : NetworkBehaviour
 
 	void OnPrefsChanged(Prefs prefs)
 	{
-		this.prefs = prefs;
-		CmdSyncPrefs (this.prefs);
+		_prefs = prefs;
 		ReapplyPrefs();
 	}
 
@@ -322,7 +324,8 @@ public class StarshipController : NetworkBehaviour
 		laserActive = l; 
 	}
 	[Command] void CmdSyncPrefs (Prefs p) { 
-		prefs = p; 
+		_prefs = p; 
+		ReapplyPrefs ();
 	}
 	[Command] void CmdSetTranslation (Vector3 s) {
 		SetTranslation (s);

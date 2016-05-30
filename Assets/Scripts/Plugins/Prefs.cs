@@ -28,12 +28,10 @@ public class Prefs
 
 	public void ScoreAdd() {
 		score++;
-		Save ();
 	}
 
 	public void ScoreReduce() {
 		score--;
-		Save ();
 	}
 
 	public void SetAll(ref GameObject starship)

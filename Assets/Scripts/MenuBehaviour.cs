@@ -7,7 +7,6 @@ using UnityEngine.Networking;
 public class MenuBehaviour : MonoBehaviour {
 
 	public Slider sliColorHue;
-	public GameObject starship;
 	public InputField playerNameInput;
 	private Prefs _prefs;
 
@@ -33,6 +32,7 @@ public class MenuBehaviour : MonoBehaviour {
 
 	public void OnSliderChangedColorHue(float colorHue)
 	{ 
+		GameObject starship = GameObject.FindGameObjectWithTag ("TitleShip");
 		_prefs.colorHue = colorHue / (sliColorHue.maxValue+1);
 		_prefs.SetStarshipColor(ref starship);
 		_prefs.Save ();

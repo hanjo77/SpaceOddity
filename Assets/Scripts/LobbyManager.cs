@@ -123,13 +123,8 @@ public class LobbyManager : NetworkManager
 		Debug.Log("EndGame");
 
 		if (IsHeadless ()) return;
-		
-		if(_isServer)
-			StopHost();
-		else 
-			StopClient();
-		Network.Disconnect();
-		MasterServer.UnregisterHost();
+
+		DropConnection ();
 		titleText.gameObject.SetActive (true);
 		ChangeTo (startRect);
 	}
@@ -165,6 +160,8 @@ public class LobbyManager : NetworkManager
 	{
 		Debug.Log("OnServerReady");
 		base.OnServerReady (conn);
+//		GameObject go = GameObject.Instantiate (playerPrefab);
+//		NetworkServer.SpawnWithClientAuthority(go, conn);
 	}
 
 	///////////////////////////////
@@ -179,6 +176,9 @@ public class LobbyManager : NetworkManager
 		ChangeTo(lobbyRect);
 		lobbyTitleText.text = "Lobby";
 	}
+
+//	public override void OnClientSceneChanged(NetworkConnection conn) {
+//	}
 		
 	// Gets called when a client disconnected
 	public override void OnClientDisconnect(NetworkConnection conn)
@@ -218,6 +218,27 @@ public class LobbyManager : NetworkManager
 			}
 		}
 		throw new Exception("Local IP Address Not Found!");
+	}
+
+	void DropConnection() 
+	{
+		if (IsHeadless ()) return;
+
+		if(_isServer)
+			StopHost();
+		else 
+			StopClient();
+		Network.Disconnect();
+		MasterServer.UnregisterHost();
+		Shutdown ();
+		Destroy (this.gameObject);
+		Destroy (this);
+		_instance = null;
+	}
+
+	void OnApplicationQuit()
+	{ 
+		DropConnection ();
 	}
 
 	// detect headless mode (which has graphicsDeviceType Null)
