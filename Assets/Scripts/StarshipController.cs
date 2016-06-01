@@ -19,7 +19,9 @@ public class StarshipController : NetworkBehaviour
 	float accel, decel;
 	[SyncVar(hook = "OnPrefsChanged")]private Prefs _prefs = new Prefs();
 	public Transform arrow;
+	public ParticleSystem explosion;
 	private Transform _arrow;
+	private bool _isDestroying = false;
 	public float arrowDistance = 5f;
 	public Prefs prefs { get { return _prefs; } }
 
@@ -68,6 +70,9 @@ public class StarshipController : NetworkBehaviour
 	{
 		Debug.Log ("Update starship");
 		// Set ship translation, rotation and draw laser
+
+		if (_isDestroying) return;
+
 		SetTranslation(motion);
 		SetRotation (shipRot);
 		SetLaser(laserActive);
@@ -205,19 +210,27 @@ public class StarshipController : NetworkBehaviour
 	}
 
 	public void DestroyStarship() {
-		Respawn ();
-		TrackCameraTo ();
+		_isDestroying = true;
+		ParticleSystem boom = ((GameObject)Instantiate (explosion.gameObject, transform.position, transform.rotation)).GetComponent<ParticleSystem>();
+		boom.Play ();
+		Destroy(gameObject, boom.duration);
+//		Respawn ();
+//		TrackCameraTo ();
 	}
 
 	void OnDestroy() {
-		Respawn ();
-		TrackCameraTo ();
+		if (LobbyManager.instance) {
+			LobbyManager.instance.EndGame ();
+		}
+//		Respawn ();
+//		TrackCameraTo ();
 	}
 
 	public override void OnNetworkDestroy() {
 		base.OnNetworkDestroy ();
-		Respawn ();
-		TrackCameraTo ();
+		LobbyManager.instance.EndGame ();
+//		Respawn ();
+//		TrackCameraTo ();
 	}
 
 	private void ShowClosestNeighbor() 
@@ -229,7 +242,7 @@ public class StarshipController : NetworkBehaviour
 		foreach (GameObject player in players) {
 			if (player != myPlayer) {
 				float dist = Vector3.Distance (player.transform.position, myPlayer.transform.position);
-				if (dist < minDist) {
+				if (dist < minDist && player.GetComponent<StarshipController> ()) {
 					minDist = dist;
 					closestPlayer = player;
 				}
@@ -295,11 +308,11 @@ public class StarshipController : NetworkBehaviour
 
 	public void Explode()
 	{
+		DestroyStarship ();
 		var meshExploders = transform.GetComponentsInChildren<MeshExploder> ();
 		foreach (MeshExploder meshExploder in meshExploders) {
 			meshExploder.Explode ();
 		}
-		DestroyStarship ();
 	}
 
 	public void SetLaser(bool doLaser)

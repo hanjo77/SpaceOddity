@@ -132,11 +132,11 @@ namespace UnityStandardAssets.CrossPlatformInput
 				pointerDelta.y = Input.mousePosition.y - m_PreviousMouse.y;
 				m_PreviousMouse = new Vector3(Input.mousePosition.x, Input.mousePosition.y, 0f);
 #endif
-				Debug.Log (new Vector3 (pointerDelta.x, pointerDelta.y, 0).ToString ());
 				UpdateVirtualAxes(new Vector3(pointerDelta.x, pointerDelta.y, 0));
 			}
 		}
-			
+
+
 		public void OnPointerUp(PointerEventData data)
 		{
 			m_Dragging = false;

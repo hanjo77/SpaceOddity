@@ -17,7 +17,7 @@ public class LaserController : MonoBehaviour {
 				meshExploder.Explode ();
 				if (targetShip) {
 					targetShip.prefs.ScoreReduce ();
-					GameObject.Destroy(targetShip.gameObject);
+					targetShip.DestroyStarship();
 				}
 				if (sourceShip) {
 					sourceShip.prefs.ScoreAdd ();
