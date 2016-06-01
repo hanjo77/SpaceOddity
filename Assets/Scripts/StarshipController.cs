@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 using UnityStandardAssets.Utility;
 using UnityStandardAssets.CrossPlatformInput;
 
+[RequireComponent(typeof(AudioSource))]
 public class StarshipController : NetworkBehaviour
 {
 	//speed stuff
@@ -25,7 +26,6 @@ public class StarshipController : NetworkBehaviour
 	public float arrowDistance = 5f;
 	public Prefs prefs { get { return _prefs; } }
 
-
 	//turning stuff
 	[SyncVar]Vector3 angVel;
 	[SyncVar]Vector3 shipRot;
@@ -41,6 +41,11 @@ public class StarshipController : NetworkBehaviour
 
 	public int maxEnergy = 100;
 	[SyncVar]int energy;
+
+	//audio
+	private AudioSource _engineAudioSource;
+	public AudioClip laserSound; 
+	public AudioClip explosionSound; 
 
 	void Start() {
 		SetSpeed (cruiseSpeed);
@@ -60,6 +65,9 @@ public class StarshipController : NetworkBehaviour
 	public override void OnStartLocalPlayer ()
 	{
 		base.OnStartLocalPlayer ();
+		_engineAudioSource = GetComponent<AudioSource>();
+		_engineAudioSource.Play();
+		_engineAudioSource.Play(44100);
 		_prefs.Load ();
 		CmdSyncPrefs (_prefs);
 		ReapplyPrefs ();
@@ -71,7 +79,10 @@ public class StarshipController : NetworkBehaviour
 		Debug.Log ("Update starship");
 		// Set ship translation, rotation and draw laser
 
-		if (_isDestroying) return;
+		if (_isDestroying) {
+			if (_engineAudioSource.isPlaying) _engineAudioSource.Stop ();
+			return;
+		}
 
 		SetTranslation(motion);
 		SetRotation (shipRot);
@@ -213,6 +224,7 @@ public class StarshipController : NetworkBehaviour
 		_isDestroying = true;
 		ParticleSystem boom = ((GameObject)Instantiate (explosion.gameObject, transform.position, transform.rotation)).GetComponent<ParticleSystem>();
 		boom.Play ();
+		AudioSource.PlayClipAtPoint (explosionSound, transform.position, 100);
 		Destroy(gameObject, boom.duration);
 //		Respawn ();
 //		TrackCameraTo ();
@@ -228,7 +240,9 @@ public class StarshipController : NetworkBehaviour
 
 	public override void OnNetworkDestroy() {
 		base.OnNetworkDestroy ();
-		LobbyManager.instance.EndGame ();
+		if (LobbyManager.instance) {
+			LobbyManager.instance.EndGame ();
+		}
 //		Respawn ();
 //		TrackCameraTo ();
 	}
@@ -299,6 +313,9 @@ public class StarshipController : NetworkBehaviour
 	public void SetSpeed(float s)
 	{
 		speed = s;
+		if (_engineAudioSource) {
+			_engineAudioSource.pitch = s / 100;
+		}
 	}
 
 	public void SetName(string name)
@@ -319,9 +336,11 @@ public class StarshipController : NetworkBehaviour
 	{
 		Transform laser = transform.Find ("laser");
 		if (doLaser) {
+			laser.gameObject.SetActive (true);
 			laser.localScale = new Vector3 (.1f, .1f, 1000);
 			laser.localPosition = new Vector3 (0, 0, 500);
 		} else {
+			laser.gameObject.SetActive (false);
 			laser.localScale = new Vector3 (.1f, .1f, .1f);
 			laser.localPosition = new Vector3 (0, 0, 0);
 		}

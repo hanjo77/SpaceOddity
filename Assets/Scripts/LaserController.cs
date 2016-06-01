@@ -1,11 +1,14 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+[RequireComponent(typeof(AudioSource))]
 public class LaserController : MonoBehaviour {
+
+	private AudioSource _audio;
 
 	// Use this for initialization
 	void Start () {
-	
+		_audio = GetComponent<AudioSource>();
 	}
 
 	void OnTriggerEnter(Collider other) {
@@ -28,6 +31,7 @@ public class LaserController : MonoBehaviour {
 		
 	// Update is called once per frame
 	void Update () {
-	
+		_audio.Play();
+		_audio.Play(44100);	
 	}
 }
