@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
 
+[RequireComponent(typeof(AudioSource))]
 public class LobbyManager : NetworkManager 
 {
 	// singleton static instance
@@ -34,6 +35,7 @@ public class LobbyManager : NetworkManager
 	private RectTransform       _currentPanel;
 	private bool                _isServer = false;
 	private bool                _showLobbyDuringGame = true;
+	private AudioSource			_audio;
 
 	void Awake() {
 		if (IsHeadless()) {
@@ -54,7 +56,7 @@ public class LobbyManager : NetworkManager
 		remoteOnlineIpInput.text = "46.101.17.239";
 		_instance = this;
 		_currentPanel = startRect;
-
+		_audio = GetComponent<AudioSource> ();
 	}
 
 	public void OnCreateHostButtonClick()
@@ -117,6 +119,7 @@ public class LobbyManager : NetworkManager
 			titleText.gameObject.SetActive (false);
 		}
 		ShowLobby(false);
+		_audio.volume = .2f;
 	}
 
 	public void EndGame() {
@@ -127,6 +130,7 @@ public class LobbyManager : NetworkManager
 		titleText.gameObject.SetActive (true);
 		ChangeTo (startRect);
 		DropConnection ();
+		_audio.volume = 1;
 	}
 
 	public void OnToggleLobbyButtuonClicked()
