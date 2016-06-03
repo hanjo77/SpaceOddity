@@ -16,7 +16,10 @@ public class LaserController : MonoBehaviour {
 		if (other.name != "laser") {
 			StarshipController sourceShip = transform.parent.GetComponent<StarshipController> ();
 			StarshipController targetShip = other.GetComponentInParent<StarshipController> ();
-			if (meshExploder != null && !this.transform.IsChildOf(other.transform)) {
+			if (targetShip) {
+				targetShip.energy -= .1f;
+			}
+			if (targetShip.energy <= 0 && meshExploder != null && !this.transform.IsChildOf(other.transform)) {
 				meshExploder.Explode ();
 				if (targetShip) {
 					targetShip.prefs.ScoreReduce ();
@@ -32,6 +35,5 @@ public class LaserController : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 		_audio.Play();
-		_audio.Play(44100);	
 	}
 }

@@ -39,8 +39,8 @@ public class StarshipController : NetworkBehaviour
 
 	public Vector2 touchOrigin = -Vector2.one;
 
-	public int maxEnergy = 100;
-	[SyncVar]int energy;
+	private float _maxEnergy = 1;
+	[SyncVar]public float energy;
 
 	//audio
 	private AudioSource _engineAudioSource;
@@ -49,6 +49,7 @@ public class StarshipController : NetworkBehaviour
 
 	void Start() {
 		SetSpeed (cruiseSpeed);
+		SetEnergy (_maxEnergy);
 		ReapplyPrefs ();
 	}
 
@@ -65,6 +66,12 @@ public class StarshipController : NetworkBehaviour
 	public override void OnStartLocalPlayer ()
 	{
 		base.OnStartLocalPlayer ();
+		GameObject energyBarObject = GameObject.FindGameObjectWithTag ("EnergyBar");
+		if (energyBarObject) 
+		{
+			EnergyBarBehaviour energyBar = energyBarObject.GetComponent<EnergyBarBehaviour>();
+			energyBar.starShip = this;
+		}
 		_engineAudioSource = GetComponent<AudioSource>();
 		_engineAudioSource.Play();
 		_engineAudioSource.Play(44100);
@@ -99,51 +106,50 @@ public class StarshipController : NetworkBehaviour
 		//since angles are only stored (0,360), convert to +- 180
 		if (shipRot.x > 180) shipRot.x -= 360;
 		if (shipRot.y > 180) shipRot.y -= 360;
-		if (shipRot.z > 180) shipRot.z -= 360;
+        if (shipRot.z > 180) shipRot.z -= 360;
 
-	#if UNITY_WEBGL || UNITY_STANDALONE
+        if (SystemInfo.deviceType == DeviceType.Desktop)
+        {
+            laserActive = Input.GetButton("Fire1");
 
-		laserActive = Input.GetButton ("Fire1");
+            //vertical stick adds to the pitch velocity
+            //         (*************************** this *******************************) is a nice way to get the square without losing the sign of the value
+            angVel.x += Input.GetAxis("Vertical") * Mathf.Abs(Input.GetAxis("Vertical")) * sensitivity * Time.fixedDeltaTime;
 
-		//vertical stick adds to the pitch velocity
-		//         (*************************** this *******************************) is a nice way to get the square without losing the sign of the value
-		angVel.x += Input.GetAxis("Vertical") * Mathf.Abs(Input.GetAxis("Vertical")) * sensitivity * Time.fixedDeltaTime;
-
-		//horizontal stick adds to the roll and yaw velocity... also thanks to the .5 you can't turn as fast/far sideways as you can pull up/down
-		float turn = Input.GetAxis("Horizontal") * Mathf.Abs(Input.GetAxis("Horizontal")) * sensitivity * Time.fixedDeltaTime;
-		angVel.y += turn * .5f;
-		angVel.z -= turn * .5f;
+            //horizontal stick adds to the roll and yaw velocity... also thanks to the .5 you can't turn as fast/far sideways as you can pull up/down
+            float turn = Input.GetAxis("Horizontal") * Mathf.Abs(Input.GetAxis("Horizontal")) * sensitivity * Time.fixedDeltaTime;
+            angVel.y += turn * .5f;
+            angVel.z -= turn * .5f;
 
 
-		//shoulder buttons add to the roll and yaw.  No deltatime here for a quick response
-		//comment out the .y parts if you don't want to turn when you hit them
-		if (Input.GetKey(KeyCode.Joystick1Button4) || Input.GetKey(KeyCode.I))
-		{
-			angVel.y -= 20;
-			angVel.z += 50;
-			speed -= 5 * Time.fixedDeltaTime;
-		}
+            //shoulder buttons add to the roll and yaw.  No deltatime here for a quick response
+            //comment out the .y parts if you don't want to turn when you hit them
+            if (Input.GetKey(KeyCode.Joystick1Button4) || Input.GetKey(KeyCode.I))
+            {
+                angVel.y -= 20;
+                angVel.z += 50;
+                speed -= 5 * Time.fixedDeltaTime;
+            }
 
-		if (Input.GetKey(KeyCode.Joystick1Button5) || Input.GetKey(KeyCode.O))
-		{
-			angVel.y += 20;
-			angVel.z -= 50;
-			speed -= 5 * Time.fixedDeltaTime;
-		}
+            if (Input.GetKey(KeyCode.Joystick1Button5) || Input.GetKey(KeyCode.O))
+            {
+                angVel.y += 20;
+                angVel.z -= 50;
+                speed -= 5 * Time.fixedDeltaTime;
+            }
+        }
+        else if (SystemInfo.deviceType == DeviceType.Handheld)
+        {
+            Debug.Log(CrossPlatformInputManager.GetAxis("Vertical"));
 
-	#else 
+            angVel.x += CrossPlatformInputManager.GetAxis("Vertical") * Mathf.Abs(CrossPlatformInputManager.GetAxis("Vertical")) * sensitivity * Time.fixedDeltaTime;
+            float turn = CrossPlatformInputManager.GetAxis("Horizontal") * Mathf.Abs(CrossPlatformInputManager.GetAxis("Horizontal")) * sensitivity * Time.fixedDeltaTime;
+            angVel.y += turn;
+            angVel.z -= turn;
+            _boost = CrossPlatformInputManager.GetButton("Boost");
+            laserActive = CrossPlatformInputManager.GetButton("Shoot");
 
-		Debug.Log(CrossPlatformInputManager.GetAxis("Vertical"));
-
-		angVel.x += CrossPlatformInputManager.GetAxis("Vertical") * Mathf.Abs(CrossPlatformInputManager.GetAxis("Vertical")) * sensitivity * Time.fixedDeltaTime;
-		float turn = CrossPlatformInputManager.GetAxis("Horizontal") * Mathf.Abs(CrossPlatformInputManager.GetAxis("Horizontal")) * sensitivity * Time.fixedDeltaTime;
-		angVel.y += turn;
-		angVel.z -= turn;
-		_boost = CrossPlatformInputManager.GetButton("Boost");
-		laserActive = CrossPlatformInputManager.GetButton("Shoot");
-
-	#endif
-
+        }
 		//simple accelerations
 		if (_boost || Input.GetKey(KeyCode.Joystick1Button1) || Input.GetKey(KeyCode.RightShift))
 			speed += accel * Time.fixedDeltaTime;
@@ -318,6 +324,11 @@ public class StarshipController : NetworkBehaviour
 		}
 	}
 
+	public void SetEnergy(float e)
+	{
+		energy = e;
+	}
+
 	public void SetName(string name)
 	{
 		this.name = name;
@@ -364,6 +375,9 @@ public class StarshipController : NetworkBehaviour
 	// Command functions all called on clients and executed on the server
 	[Command] void CmdSetSpeed (float s) { 
 		SetSpeed(s); 
+	}
+	[Command] void CmdSetEnergy (float e) { 
+		SetSpeed(e); 
 	}
 	[Command] void CmdSetName (string name) { 
 		SetName(name); 

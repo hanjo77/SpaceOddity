@@ -1,12 +1,7 @@
-﻿using System;
-using System.Net;
-using System.Net.Sockets;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
-using System.Collections.Generic;
-using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
 
 [RequireComponent(typeof(AudioSource))]
@@ -213,15 +208,15 @@ public class LobbyManager : NetworkManager
 
 	private static string GetLocalIPAddress()
 	{
-		var host = Dns.GetHostEntry(Dns.GetHostName());
-		foreach (var ip in host.AddressList)
-		{
-			if (ip.AddressFamily == AddressFamily.InterNetwork)
-			{
-				return ip.ToString();
-			}
-		}
-		throw new Exception("Local IP Address Not Found!");
+        //IReadOnlyList<HostName> hosts = System.Net.NetworkInformation.GetHostNames();
+        //foreach (HostName aName in hosts)
+        //{
+        //    if (aName.Type == HostNameType.Ipv4)
+        //    {
+        //        return aName;
+        //    }
+        //}
+        return "127.0.0.1";
 	}
 
 	void DropConnection() 
@@ -232,8 +227,8 @@ public class LobbyManager : NetworkManager
 			StopHost();
 		else 
 			StopClient();
-		Network.Disconnect();
-		MasterServer.UnregisterHost();
+		//Network.Disconnect();
+		//MasterServer.UnregisterHost();
 		Shutdown ();
 		Destroy (this.gameObject);
 		Destroy (this);
