@@ -19,20 +19,23 @@ public class EnergyBarBehaviour : MonoBehaviour {
 	private Rect _rectBar;
 	private int _innerWidth, _innerHeight;
 	private float _colorHue = -1f;
+	private float _leftPadding;
 
 	// Use this for initialization
 	void Start () {
-		_innerWidth = barBorder.width - (int)(1.5f * padding);
-		_innerHeight = barBorder.height - (3 * padding);
-		_rectBorder = new Rect (0, 0, barBorder.width, barBorder.height);
-		_rectBg = new Rect (padding * .75f, padding * 1.5f, _innerWidth, _innerHeight);
+		Vector2 objSize = GetComponent<RectTransform> ().sizeDelta;
+		_innerWidth = (int)objSize.x;
+		_innerHeight = (int)objSize.y;
+		_leftPadding = (Screen.width-_innerWidth)/2;
+		_rectBorder = new Rect (_leftPadding, padding, _innerWidth, _innerHeight);
+		_rectBg = new Rect (_leftPadding, padding, _innerWidth, _innerHeight);
 		_imgBg = GetRectangle (Color.white, _innerWidth, _innerHeight);
 	}
 	
 	// Update is called once per frame
 	void Update () {
 		if (starShip) {
-			if (_colorHue < 0 || starShip.energy != barValue) {
+			if ((_colorHue < 0 || starShip.energy != barValue) && starShip.energy > 0) {
 				UpdateBar ();
 			}
 		}
@@ -40,16 +43,16 @@ public class EnergyBarBehaviour : MonoBehaviour {
 
     void OnGUI()
     {
-		GUI.DrawTexture(_rectBg, _imgBg, ScaleMode.ScaleToFit);
-		GUI.DrawTexture(_rectBar, _imgBar, ScaleMode.ScaleToFit);
-		GUI.DrawTexture(_rectBorder, barBorder, ScaleMode.ScaleToFit);
+		GUI.DrawTexture(_rectBg, _imgBg, ScaleMode.StretchToFill);
+		GUI.DrawTexture(_rectBar, _imgBar, ScaleMode.StretchToFill);
+		GUI.DrawTexture(_rectBorder, barBorder, ScaleMode.StretchToFill);
     }
 
 	void UpdateBar() {
 		barValue = starShip.energy;
 		_innerWidth = (int)(barValue * (float)_innerWidth);
 		_colorHue = minColorHue+((maxColorHue-minColorHue)*barValue);
-		_rectBar = new Rect (padding * .75f, padding * 1.5f, _innerWidth, _innerHeight);
+		_rectBar = new Rect (_leftPadding, padding, _innerWidth, _innerHeight);
 		_imgBar = GetRectangle (Color.HSVToRGB (_colorHue, colorSaturation, colorValue), _innerWidth, _innerHeight);
 	}
 

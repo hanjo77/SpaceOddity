@@ -13,7 +13,7 @@ public class MarsBehaviour : MonoBehaviour {
 	void OnTriggerEnter(Collider other) {
 		if (other.name != "laser") {
 			StarshipController starship = other.GetComponentInParent<StarshipController> ();
-			starship.Explode ();
+			starship.DestroyStarship ();
 		}
 	}
 

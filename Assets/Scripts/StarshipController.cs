@@ -20,9 +20,10 @@ public class StarshipController : NetworkBehaviour
 	float accel, decel;
 	[SyncVar(hook = "OnPrefsChanged")]private Prefs _prefs = new Prefs();
 	public Transform arrow;
-	public ParticleSystem explosion;
+	[SyncVar]public ParticleSystem explosion;
 	private Transform _arrow;
-	private bool _isDestroying = false;
+	[SyncVar]public bool isDestroying = false;
+	private IEnumerator _waitCoroutine;
 	public float arrowDistance = 5f;
 	public Prefs prefs { get { return _prefs; } }
 
@@ -43,7 +44,7 @@ public class StarshipController : NetworkBehaviour
 	[SyncVar]public float energy;
 
 	//audio
-	private AudioSource _engineAudioSource;
+	[SyncVar]private AudioSource _engineAudioSource;
 	public AudioClip laserSound; 
 	public AudioClip explosionSound; 
 
@@ -72,13 +73,11 @@ public class StarshipController : NetworkBehaviour
 			EnergyBarBehaviour energyBar = energyBarObject.GetComponent<EnergyBarBehaviour>();
 			energyBar.starShip = this;
 		}
-		_engineAudioSource = GetComponent<AudioSource>();
-		_engineAudioSource.Play();
-		_engineAudioSource.Play(44100);
+		CmdStartEngineSound ();
 		_prefs.Load ();
 		CmdSyncPrefs (_prefs);
 		ReapplyPrefs ();
-		TrackCameraTo ();
+		TrackCameraTo (gameObject);
 	}
 		
 	void Update()
@@ -86,8 +85,8 @@ public class StarshipController : NetworkBehaviour
 		Debug.Log ("Update starship");
 		// Set ship translation, rotation and draw laser
 
-		if (_isDestroying) {
-			if (_engineAudioSource.isPlaying) _engineAudioSource.Stop ();
+		if (isDestroying) {
+			if (_engineAudioSource && _engineAudioSource.isPlaying) _engineAudioSource.Stop ();
 			return;
 		}
 
@@ -97,8 +96,6 @@ public class StarshipController : NetworkBehaviour
 		SetSpeed (speed);
 
 		if (!isLocalPlayer) return;
-
-		// HandleControls ();
 
 		//ANGULAR DYNAMICS//
 		shipRot = transform.localEulerAngles; // I don't know how they're numbered in general.
@@ -206,18 +203,28 @@ public class StarshipController : NetworkBehaviour
 
 	public void Respawn()
 	{
-		if (LobbyManager.instance) {
-			LobbyManager.instance.Respawn(gameObject);
+		// StopCoroutine(_waitCoroutine);
+		StopAllCoroutines();
+		// gameObject.SetActive (true);
+		SetEnergy(_maxEnergy);
+		ParticleSystem[] explosions = FindObjectsOfType<ParticleSystem> ();
+		foreach (ParticleSystem p in explosions) {
+			GameObject.Destroy (p.gameObject);
 		}
+		NetworkStartPosition[] spawnPoints = FindObjectsOfType<NetworkStartPosition> ();
+		Vector3 spawnPoint = spawnPoints [Random.Range (0, spawnPoints.Length)].transform.position;
+		gameObject.transform.position = spawnPoint;
+		StartEngineSound ();
+		isDestroying = false;
 	}
 
-	public void TrackCameraTo() 
+	public void TrackCameraTo(GameObject go) 
 	{
 		GameObject camera = GameObject.Find ("camera");
 		if (isLocalPlayer && camera != null)
 		{
 			CameraFollow follow = camera.transform.GetComponent<CameraFollow> ();
-			follow.targetShip = gameObject;
+			follow.targetShip = go;
 		}
 	}
 
@@ -227,30 +234,22 @@ public class StarshipController : NetworkBehaviour
 	}
 
 	public void DestroyStarship() {
-		_isDestroying = true;
-		ParticleSystem boom = ((GameObject)Instantiate (explosion.gameObject, transform.position, transform.rotation)).GetComponent<ParticleSystem>();
-		boom.Play ();
-		AudioSource.PlayClipAtPoint (explosionSound, transform.position, 100);
-		Destroy(gameObject, boom.duration);
+		isDestroying = true;
+		if (isLocalPlayer) {
+			StartExplosion ();
+		} else {
+			CmdStartExplosion ();
+		}
 //		Respawn ();
-//		TrackCameraTo ();
 	}
 
 	void OnDestroy() {
-		if (LobbyManager.instance) {
-			LobbyManager.instance.EndGame ();
-		}
-//		Respawn ();
-//		TrackCameraTo ();
+		Respawn ();
 	}
 
 	public override void OnNetworkDestroy() {
 		base.OnNetworkDestroy ();
-		if (LobbyManager.instance) {
-			LobbyManager.instance.EndGame ();
-		}
-//		Respawn ();
-//		TrackCameraTo ();
+		OnDestroy();
 	}
 
 	private void ShowClosestNeighbor() 
@@ -336,10 +335,16 @@ public class StarshipController : NetworkBehaviour
 
 	public void Explode()
 	{
-		DestroyStarship ();
 		var meshExploders = transform.GetComponentsInChildren<MeshExploder> ();
 		foreach (MeshExploder meshExploder in meshExploders) {
 			meshExploder.Explode ();
+		}
+	}
+
+	public IEnumerator Wait(float waitTime) {
+		while (true) {
+			yield return new WaitForSeconds(waitTime);
+			Respawn ();
 		}
 	}
 
@@ -355,6 +360,28 @@ public class StarshipController : NetworkBehaviour
 			laser.localScale = new Vector3 (.1f, .1f, .1f);
 			laser.localPosition = new Vector3 (0, 0, 0);
 		}
+	}
+
+	void StartEngineSound()
+	{
+		if (isLocalPlayer) 
+		{
+			_engineAudioSource = GetComponent<AudioSource>();
+			_engineAudioSource.Play();
+		}
+	}
+
+	void StartExplosion()
+	{
+		ParticleSystem p = ((GameObject)Instantiate (explosion.gameObject, transform.position, transform.rotation)).GetComponent<ParticleSystem>();
+		p.transform.parent = transform;
+		p.Play ();
+		AudioSource.PlayClipAtPoint (explosionSound, transform.position, 100);
+		Explode ();
+		if (!isLocalPlayer)
+			return;
+		_waitCoroutine = Wait(p.duration);
+		StartCoroutine(_waitCoroutine);
 	}
 
 	void OnPrefsChanged(Prefs prefs)
@@ -406,6 +433,24 @@ public class StarshipController : NetworkBehaviour
 
 		NetworkServer.SpawnWithClientAuthority(go, connectionToClient);
 	}
+
+	[Command]
+	void CmdStartExplosion()
+	{
+		StartExplosion ();
+	}
+
+	[Command]
+	void CmdStartEngineSound()
+	{
+		StartEngineSound ();
+	}
+
+	[Command]
+	void CmdDestroyStarship() {
+		DestroyStarship ();
+	}
+
 
 	[ClientRpc]
 	void RpcGameOver()

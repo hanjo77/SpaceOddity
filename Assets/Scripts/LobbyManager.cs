@@ -31,6 +31,7 @@ public class LobbyManager : NetworkManager
 	private bool                _isServer = false;
 	private bool                _showLobbyDuringGame = true;
 	private AudioSource			_audio;
+	private NetworkStartPosition[] _spawnPoints;
 
 	void Awake() {
 		if (IsHeadless()) {
@@ -159,8 +160,6 @@ public class LobbyManager : NetworkManager
 	{
 		Debug.Log("OnServerReady");
 		base.OnServerReady (conn);
-//		GameObject go = GameObject.Instantiate (playerPrefab);
-//		NetworkServer.SpawnWithClientAuthority(go, conn);
 	}
 
 	///////////////////////////////
@@ -184,7 +183,6 @@ public class LobbyManager : NetworkManager
 	{
 		Debug.Log("OnClientDisconnect");
 		base.OnClientDisconnect(conn);
-		// StopClient();
 		ChangeTo(startRect);
 		titleText.gameObject.SetActive (true);
 		ShowLobby(true);
@@ -200,22 +198,16 @@ public class LobbyManager : NetworkManager
 		}
 	}
 
-	public void Respawn(GameObject gameObject) {
-		if (NetworkServer.active) {
-			NetworkServer.Spawn (gameObject);
-		}
-	}
-
 	private static string GetLocalIPAddress()
 	{
-        //IReadOnlyList<HostName> hosts = System.Net.NetworkInformation.GetHostNames();
-        //foreach (HostName aName in hosts)
-        //{
-        //    if (aName.Type == HostNameType.Ipv4)
-        //    {
-        //        return aName;
-        //    }
-        //}
+//        IReadOnlyList<HostName> hosts = System.Net.NetworkInformation.GetHostNames();
+//        foreach (HostName aName in hosts)
+//        {
+//            if (aName.Type == HostNameType.Ipv4)
+//            {
+//                return aName;
+//            }
+//        }
         return "127.0.0.1";
 	}
 
@@ -227,11 +219,7 @@ public class LobbyManager : NetworkManager
 			StopHost();
 		else 
 			StopClient();
-		//Network.Disconnect();
-		//MasterServer.UnregisterHost();
-		Shutdown ();
 		Destroy (this.gameObject);
-		Destroy (this);
 		_instance = null;
 		SceneManager.LoadScene ("Start");
 	}
