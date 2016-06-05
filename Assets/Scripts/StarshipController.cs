@@ -22,7 +22,7 @@ public class StarshipController : NetworkBehaviour
 	public Transform arrow;
 	public ParticleSystem explosion;
 	private Transform _arrow;
-	public bool isDestroying = false;
+	private bool _isDestroying = false;
 	private IEnumerator _waitCoroutine;
 	public float arrowDistance = 5f;
 	public Prefs prefs { get { return _prefs; } }
@@ -52,6 +52,7 @@ public class StarshipController : NetworkBehaviour
 	void Start() {
 		SetSpeed (cruiseSpeed);
 		CmdSetEnergy (_maxEnergy);
+		SetEnergy (_maxEnergy);
 		ReapplyPrefs ();
 	}
 
@@ -73,6 +74,7 @@ public class StarshipController : NetworkBehaviour
 		{
 			_energyBar = energyBarObject.GetComponent<EnergyBarBehaviour>();
 			CmdSetEnergy (_maxEnergy);
+			SetEnergy (_maxEnergy);
 		}
 		CmdStartEngineSound ();
 		_prefs.Load ();
@@ -86,7 +88,7 @@ public class StarshipController : NetworkBehaviour
 		Debug.Log ("Update starship");
 		// Set ship translation, rotation and draw laser
 
-		if (isDestroying) {
+		if (_isDestroying) {
 			if (_engineAudioSource && _engineAudioSource.isPlaying) _engineAudioSource.Stop ();
 			return;
 		}
@@ -215,9 +217,10 @@ public class StarshipController : NetworkBehaviour
 		Vector3 spawnPoint = spawnPoints [Random.Range (0, spawnPoints.Length)].transform.position;
 		gameObject.transform.position = spawnPoint;
 		StartEngineSound ();
-		isDestroying = false;
+		_isDestroying = false;
 		if (isLocalPlayer) {
 			CmdSetEnergy (_maxEnergy);
+			SetEnergy (_maxEnergy);
 		}
 	}
 
@@ -237,14 +240,12 @@ public class StarshipController : NetworkBehaviour
 	}
 
 	void OnEnergyChanged(float e) {
-		if (!isDestroying) {
-			energy = e;
-			SetEnergy (e);
-		}
+		energy = e;
+		SetEnergy (e);
 	}
 
 	public void DestroyStarship() {
-		isDestroying = true;
+		_isDestroying = true;
 		StartExplosion ();
 //		Respawn ();
 	}
@@ -331,7 +332,9 @@ public class StarshipController : NetworkBehaviour
 
 	public void DecreaseEnergy(float energyDecrease, StarshipController otherShip)
 	{
-		CmdSetEnergy (energy - energyDecrease);
+		energy -= energyDecrease;
+		CmdSetEnergy (energy);
+		SetEnergy(energy);
 		if (energy < 0.1f) {
 			energy = 0;
 			prefs.ScoreReduce ();
@@ -344,14 +347,12 @@ public class StarshipController : NetworkBehaviour
 	public void SetEnergy(float e)
 	{
 		energy = e;
-		if (!isDestroying) {
-			if (e <= 0.1f) {
-				e = 0.1f;
-				CmdDestroyStarship ();
-				DestroyStarship ();
-			} else if (_energyBar) {
-				_energyBar.UpdateBar (e);
-			}
+		if (e <= 0.1f) {
+			e = 0.1f;
+			CmdDestroyStarship ();
+			DestroyStarship ();
+		} else if (_energyBar) {
+			_energyBar.UpdateBar (e);
 		}
 	}
 
