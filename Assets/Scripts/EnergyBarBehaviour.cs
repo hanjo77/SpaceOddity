@@ -3,7 +3,6 @@ using System.Collections;
 
 public class EnergyBarBehaviour : MonoBehaviour {
 
-	public StarshipController starShip;
     public Texture2D barBorder;
     public int padding = 20;
     public float maxColorHue = .33f;
@@ -34,11 +33,6 @@ public class EnergyBarBehaviour : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		if (starShip) {
-			if ((_colorHue < 0 || starShip.energy != barValue) && starShip.energy > 0) {
-				UpdateBar ();
-			}
-		}
 	}
 
     void OnGUI()
@@ -48,12 +42,11 @@ public class EnergyBarBehaviour : MonoBehaviour {
 		GUI.DrawTexture(_rectBorder, barBorder, ScaleMode.StretchToFill);
     }
 
-	void UpdateBar() {
-		barValue = starShip.energy;
-		_innerWidth = (int)(barValue * (float)_innerWidth);
+	public void UpdateBar(float barValue) {
+		int tmpWidth = (int)(barValue * (float)_innerWidth);
 		_colorHue = minColorHue+((maxColorHue-minColorHue)*barValue);
-		_rectBar = new Rect (_leftPadding, padding, _innerWidth, _innerHeight);
-		_imgBar = GetRectangle (Color.HSVToRGB (_colorHue, colorSaturation, colorValue), _innerWidth, _innerHeight);
+		_rectBar = new Rect (_leftPadding, padding, tmpWidth, _innerHeight);
+		_imgBar = GetRectangle (Color.HSVToRGB (_colorHue, colorSaturation, colorValue), tmpWidth, _innerHeight);
 	}
 
     Texture2D GetRectangle(Color color, int width, int height)

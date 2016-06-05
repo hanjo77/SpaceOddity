@@ -5,7 +5,7 @@ using System.Collections;
 public class LaserController : MonoBehaviour {
 
 	private AudioSource _audio;
-	public float energyDecrease = 1;
+	public float energyDecrease = .1f;
 
 	// Use this for initialization
 	void Start () {
@@ -17,18 +17,8 @@ public class LaserController : MonoBehaviour {
 		if (other && other.name != "laser") {
 			StarshipController sourceShip = transform.parent.GetComponent<StarshipController> ();
 			StarshipController targetShip = other.GetComponentInParent<StarshipController> ();
-			if (targetShip) {
-				targetShip.energy -= energyDecrease;
-				if (!targetShip.isDestroying && targetShip.energy < 0 && !this.transform.IsChildOf(other.transform)) {
-					targetShip.energy = 0;
-					if (targetShip) {
-						 targetShip.prefs.ScoreReduce ();
-						 targetShip.DestroyStarship();
-					}
-					if (sourceShip) {
-						 sourceShip.prefs.ScoreAdd ();
-					}
-				}
+			if (targetShip && !this.transform.IsChildOf(other.transform)) {
+				targetShip.DecreaseEnergy (energyDecrease, sourceShip);
 			}
 		}
 	}

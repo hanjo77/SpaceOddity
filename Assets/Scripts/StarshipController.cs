@@ -20,9 +20,9 @@ public class StarshipController : NetworkBehaviour
 	float accel, decel;
 	[SyncVar(hook = "OnPrefsChanged")]private Prefs _prefs = new Prefs();
 	public Transform arrow;
-	[SyncVar]public ParticleSystem explosion;
+	public ParticleSystem explosion;
 	private Transform _arrow;
-	[SyncVar]public bool isDestroying = false;
+	public bool isDestroying = false;
 	private IEnumerator _waitCoroutine;
 	public float arrowDistance = 5f;
 	public Prefs prefs { get { return _prefs; } }
@@ -40,8 +40,9 @@ public class StarshipController : NetworkBehaviour
 
 	public Vector2 touchOrigin = -Vector2.one;
 
-	private float _maxEnergy = 1;
-	[SyncVar]public float energy;
+	private float _maxEnergy = 1f;
+	[SyncVar(hook = "OnEnergyChanged")]float energy;
+	private EnergyBarBehaviour _energyBar;
 
 	//audio
 	[SyncVar]private AudioSource _engineAudioSource;
@@ -50,7 +51,7 @@ public class StarshipController : NetworkBehaviour
 
 	void Start() {
 		SetSpeed (cruiseSpeed);
-		SetEnergy (_maxEnergy);
+		CmdSetEnergy (_maxEnergy);
 		ReapplyPrefs ();
 	}
 
@@ -70,8 +71,8 @@ public class StarshipController : NetworkBehaviour
 		GameObject energyBarObject = GameObject.FindGameObjectWithTag ("EnergyBar");
 		if (energyBarObject) 
 		{
-			EnergyBarBehaviour energyBar = energyBarObject.GetComponent<EnergyBarBehaviour>();
-			energyBar.starShip = this;
+			_energyBar = energyBarObject.GetComponent<EnergyBarBehaviour>();
+			CmdSetEnergy (_maxEnergy);
 		}
 		CmdStartEngineSound ();
 		_prefs.Load ();
@@ -206,7 +207,6 @@ public class StarshipController : NetworkBehaviour
 		// StopCoroutine(_waitCoroutine);
 		StopAllCoroutines();
 		// gameObject.SetActive (true);
-		SetEnergy(_maxEnergy);
 		ParticleSystem[] explosions = FindObjectsOfType<ParticleSystem> ();
 		foreach (ParticleSystem p in explosions) {
 			GameObject.Destroy (p.gameObject);
@@ -216,6 +216,9 @@ public class StarshipController : NetworkBehaviour
 		gameObject.transform.position = spawnPoint;
 		StartEngineSound ();
 		isDestroying = false;
+		if (isLocalPlayer) {
+			CmdSetEnergy (_maxEnergy);
+		}
 	}
 
 	public void TrackCameraTo(GameObject go) 
@@ -233,13 +236,16 @@ public class StarshipController : NetworkBehaviour
 		SetLaser (l);
 	}
 
+	void OnEnergyChanged(float e) {
+		if (!isDestroying) {
+			energy = e;
+			SetEnergy (e);
+		}
+	}
+
 	public void DestroyStarship() {
 		isDestroying = true;
-		if (isLocalPlayer) {
-			StartExplosion ();
-		} else {
-			CmdStartExplosion ();
-		}
+		StartExplosion ();
 //		Respawn ();
 	}
 
@@ -323,9 +329,30 @@ public class StarshipController : NetworkBehaviour
 		}
 	}
 
+	public void DecreaseEnergy(float energyDecrease, StarshipController otherShip)
+	{
+		CmdSetEnergy (energy - energyDecrease);
+		if (energy < 0.1f) {
+			energy = 0;
+			prefs.ScoreReduce ();
+			if (otherShip) {
+				otherShip.prefs.ScoreAdd ();
+			}
+		}
+	}
+
 	public void SetEnergy(float e)
 	{
 		energy = e;
+		if (!isDestroying) {
+			if (e <= 0.1f) {
+				e = 0.1f;
+				CmdDestroyStarship ();
+				DestroyStarship ();
+			} else if (_energyBar) {
+				_energyBar.UpdateBar (e);
+			}
+		}
 	}
 
 	public void SetName(string name)
@@ -404,7 +431,7 @@ public class StarshipController : NetworkBehaviour
 		SetSpeed(s); 
 	}
 	[Command] void CmdSetEnergy (float e) { 
-		SetSpeed(e); 
+		SetEnergy(e); 
 	}
 	[Command] void CmdSetName (string name) { 
 		SetName(name); 
