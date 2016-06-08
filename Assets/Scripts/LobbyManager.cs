@@ -32,6 +32,7 @@ public class LobbyManager : NetworkManager
 	private bool                _showLobbyDuringGame = true;
 	private AudioSource			_audio;
 	private NetworkStartPosition[] _spawnPoints;
+	private StarshipController	_starShip;
 
 	void Awake() {
 		if (IsHeadless()) {
@@ -79,7 +80,16 @@ public class LobbyManager : NetworkManager
 		Debug.Log("OnBackToStartButtonClick");
 		ChangeTo (startRect);
 	}
-
+		
+	public void OnRestartButtonClick()
+	{
+		Debug.Log("OnRestartButtonClick");
+		if (_starShip) {
+			_starShip.gameObject.SetActive (true);
+			_starShip.Respawn ();
+			OpenLobbyInGame (false);
+		}
+	}
 
 	public void OnStartButtonClicked()
 	{
@@ -105,6 +115,11 @@ public class LobbyManager : NetworkManager
 		networkAddress = remoteOnlineIpInput.text;
 		StartClient ();
 		StartGame ();
+	}
+
+	public void OpenLobbyInGame(bool doOpen) {
+		_showLobbyDuringGame = doOpen;
+		ShowLobby(doOpen);
 	}
 
 	public void StartGame() {
@@ -222,6 +237,11 @@ public class LobbyManager : NetworkManager
 		Destroy (this.gameObject);
 		_instance = null;
 		SceneManager.LoadScene ("Start");
+	}
+
+	public void SetStarship(StarshipController starShip) 
+	{
+		_starShip = starShip;
 	}
 
 	void OnApplicationQuit()

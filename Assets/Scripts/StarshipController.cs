@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Text;
+using UnityEngine.UI;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityStandardAssets.Utility;
@@ -17,11 +18,13 @@ public class StarshipController : NetworkBehaviour
 	public int minSpeed;
 	public int maxSpeed;
 	public float maxArrowScale = 1;
+	public float arrowAlpha = .4f;
 	float accel, decel;
 	[SyncVar(hook = "OnPrefsChanged")]private Prefs _prefs = new Prefs();
 	public Transform arrow;
 	public ParticleSystem explosion;
 	private Transform _arrow;
+	private Slider _slider;
 	private bool _isDestroying = false;
 	private IEnumerator _waitCoroutine;
 	public float arrowDistance = 5f;
@@ -45,7 +48,7 @@ public class StarshipController : NetworkBehaviour
 	private EnergyBarBehaviour _energyBar;
 
 	//audio
-	[SyncVar]private AudioSource _engineAudioSource;
+	private AudioSource _engineAudioSource;
 	public AudioClip laserSound; 
 	public AudioClip explosionSound; 
 
@@ -54,6 +57,10 @@ public class StarshipController : NetworkBehaviour
 		CmdSetEnergy (_maxEnergy);
 		SetEnergy (_maxEnergy);
 		ReapplyPrefs ();
+	}
+
+	public void OnSliderChangedSpeed() {
+		speed = _slider.value;
 	}
 
 	public override void OnStartClient()
@@ -69,6 +76,10 @@ public class StarshipController : NetworkBehaviour
 	public override void OnStartLocalPlayer ()
 	{
 		base.OnStartLocalPlayer ();
+		if (GameObject.FindGameObjectWithTag ("SpeedSlider")) {
+			_slider = GameObject.FindGameObjectWithTag ("SpeedSlider").GetComponent<Slider>();
+			_slider.onValueChanged.AddListener (delegate { OnSliderChangedSpeed ();});
+		}
 		GameObject energyBarObject = GameObject.FindGameObjectWithTag ("EnergyBar");
 		if (energyBarObject) 
 		{
@@ -76,11 +87,12 @@ public class StarshipController : NetworkBehaviour
 			CmdSetEnergy (_maxEnergy);
 			SetEnergy (_maxEnergy);
 		}
-		CmdStartEngineSound ();
+		StartEngineSound ();
 		_prefs.Load ();
 		CmdSyncPrefs (_prefs);
 		ReapplyPrefs ();
 		TrackCameraTo (gameObject);
+		LobbyManager.instance.SetStarship (this);
 	}
 		
 	void Update()
@@ -146,19 +158,18 @@ public class StarshipController : NetworkBehaviour
             float turn = CrossPlatformInputManager.GetAxis("Horizontal") * Mathf.Abs(CrossPlatformInputManager.GetAxis("Horizontal")) * sensitivity * Time.fixedDeltaTime;
             angVel.y += turn;
             angVel.z -= turn;
-            _boost = CrossPlatformInputManager.GetButton("Boost");
+			if (_slider) speed = _slider.value;
             laserActive = CrossPlatformInputManager.GetButton("Shoot");
-
         }
 		//simple accelerations
 		if (_boost || Input.GetKey(KeyCode.Joystick1Button1) || Input.GetKey(KeyCode.RightShift))
 			speed += accel * Time.fixedDeltaTime;
-		else if (Input.GetKey(KeyCode.Joystick1Button0) || Input.GetKey(KeyCode.X))
+		else if (Input.GetKey(KeyCode.Joystick1Button0) || Input.GetKey(KeyCode.RightAlt))
 			speed -= decel * Time.fixedDeltaTime;
 
 		//if not accelerating or decelerating, tend toward cruise, using a similar principle to the accelerations above
 		//(added clamping since it's more of a gradual slowdown/speedup) 
-		else if (Mathf.Abs(deltaSpeed) > .1f)
+		else if (Mathf.Abs(deltaSpeed) > .1f && (SystemInfo.deviceType != DeviceType.Handheld))
 			speed -= Mathf.Clamp(deltaSpeed * Mathf.Abs(deltaSpeed), -30, 100) * Time.fixedDeltaTime;
 
 		Debug.Log(CrossPlatformInputManager.GetAxis("Vertical"));
@@ -216,9 +227,9 @@ public class StarshipController : NetworkBehaviour
 		NetworkStartPosition[] spawnPoints = FindObjectsOfType<NetworkStartPosition> ();
 		Vector3 spawnPoint = spawnPoints [Random.Range (0, spawnPoints.Length)].transform.position;
 		gameObject.transform.position = spawnPoint;
-		StartEngineSound ();
 		_isDestroying = false;
 		if (isLocalPlayer) {
+			StartEngineSound ();
 			CmdSetEnergy (_maxEnergy);
 			SetEnergy (_maxEnergy);
 		}
@@ -251,7 +262,9 @@ public class StarshipController : NetworkBehaviour
 	}
 
 	void OnDestroy() {
-		Respawn ();
+		if (isLocalPlayer) {
+			LobbyManager.instance.OpenLobbyInGame (true);
+		}
 	}
 
 	public override void OnNetworkDestroy() {
@@ -282,7 +295,9 @@ public class StarshipController : NetworkBehaviour
 			}
 			Prefs otherPrefs = closestPlayer.GetComponent<StarshipController> ().prefs;
 			Renderer renderer = _arrow.transform.GetComponentsInChildren<Renderer> () [0];
-			renderer.material.SetColor("_Color", Color.HSVToRGB(otherPrefs.colorHue, otherPrefs.colorSaturation, otherPrefs.colorLuminance));
+			Color c = Color.HSVToRGB (otherPrefs.colorHue, otherPrefs.colorSaturation, otherPrefs.colorLuminance);
+			c.a = arrowAlpha;
+			renderer.material.SetColor("_Color", c);
 			_arrow.LookAt (closestPlayer.transform.position);
 			_arrow.localScale = GetArrowScale (myPlayer, closestPlayer);
 			_arrow.transform.position = Vector3.MoveTowards (myPlayer.transform.position, closestPlayer.transform.position, arrowDistance);
@@ -325,6 +340,7 @@ public class StarshipController : NetworkBehaviour
 	public void SetSpeed(float s)
 	{
 		speed = s;
+		if (_slider) _slider.value = s;
 		if (_engineAudioSource) {
 			_engineAudioSource.pitch = s / 100;
 		}
@@ -333,25 +349,27 @@ public class StarshipController : NetworkBehaviour
 	public void DecreaseEnergy(float energyDecrease, StarshipController otherShip)
 	{
 		energy -= energyDecrease;
-		CmdSetEnergy (energy);
-		SetEnergy(energy);
-		if (energy < 0.1f) {
+		if (energy < 0) {
 			energy = 0;
 			prefs.ScoreReduce ();
 			if (otherShip) {
 				otherShip.prefs.ScoreAdd ();
 			}
 		}
+		CmdSetEnergy (energy);
+		SetEnergy(energy);
+
 	}
 
 	public void SetEnergy(float e)
 	{
 		energy = e;
-		if (e <= 0.1f) {
-			e = 0.1f;
+		if (e <= 0.00001f) {
+			e = 0.00001f; // 0 will crash EnergyBarBehaviour...
 			CmdDestroyStarship ();
 			DestroyStarship ();
-		} else if (_energyBar) {
+		} 
+		if (_energyBar) {
 			_energyBar.UpdateBar (e);
 		}
 	}
@@ -372,7 +390,8 @@ public class StarshipController : NetworkBehaviour
 	public IEnumerator Wait(float waitTime) {
 		while (true) {
 			yield return new WaitForSeconds(waitTime);
-			Respawn ();
+			gameObject.SetActive (false);
+			LobbyManager.instance.OpenLobbyInGame (true);
 		}
 	}
 
@@ -394,7 +413,9 @@ public class StarshipController : NetworkBehaviour
 	{
 		if (isLocalPlayer) 
 		{
-			_engineAudioSource = GetComponent<AudioSource>();
+			if (!_engineAudioSource) {
+				_engineAudioSource = GetComponent<AudioSource>();
+			}
 			_engineAudioSource.Play();
 		}
 	}
@@ -466,12 +487,6 @@ public class StarshipController : NetworkBehaviour
 	void CmdStartExplosion()
 	{
 		StartExplosion ();
-	}
-
-	[Command]
-	void CmdStartEngineSound()
-	{
-		StartEngineSound ();
 	}
 
 	[Command]
