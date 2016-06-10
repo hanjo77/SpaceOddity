@@ -19,6 +19,12 @@ public class StarshipController : NetworkBehaviour
 	public int maxSpeed;
 	public float maxArrowScale = 1;
 	public float arrowAlpha = .4f;
+	public Transform crossHair;
+	private CrossHairBehaviour _crossHair;
+	[SyncVar]public Vector3 laserTarget;
+	public float focusDistance = 200;
+	public float focusAngle = 30;
+	public float crossHairDistance = 2;
 	float accel, decel;
 	[SyncVar(hook = "OnPrefsChanged")]private Prefs _prefs = new Prefs();
 	public Transform arrow;
@@ -28,6 +34,7 @@ public class StarshipController : NetworkBehaviour
 	private bool _isDestroying = false;
 	private IEnumerator _waitCoroutine;
 	public float arrowDistance = 5f;
+	public float energyDecrease = .001f;
 	public Prefs prefs { get { return _prefs; } }
 
 	//turning stuff
@@ -51,8 +58,11 @@ public class StarshipController : NetworkBehaviour
 	private AudioSource _engineAudioSource;
 	public AudioClip laserSound; 
 	public AudioClip explosionSound; 
+	private LaserController _laser;
 
 	void Start() {
+		_laser = transform.Find ("laser").gameObject.GetComponent<LaserController>();
+		_laser.sourceShip = this;
 		SetSpeed (cruiseSpeed);
 		CmdSetEnergy (_maxEnergy);
 		SetEnergy (_maxEnergy);
@@ -217,9 +227,7 @@ public class StarshipController : NetworkBehaviour
 
 	public void Respawn()
 	{
-		// StopCoroutine(_waitCoroutine);
 		StopAllCoroutines();
-		// gameObject.SetActive (true);
 		ParticleSystem[] explosions = FindObjectsOfType<ParticleSystem> ();
 		foreach (ParticleSystem p in explosions) {
 			GameObject.Destroy (p.gameObject);
@@ -258,11 +266,12 @@ public class StarshipController : NetworkBehaviour
 	public void DestroyStarship() {
 		_isDestroying = true;
 		StartExplosion ();
-//		Respawn ();
+		LobbyManager.instance.OpenLobbyInGame (true);
+		Respawn ();
 	}
 
 	void OnDestroy() {
-		if (isLocalPlayer) {
+		if (isLocalPlayer && LobbyManager.instance) {
 			LobbyManager.instance.OpenLobbyInGame (true);
 		}
 	}
@@ -276,6 +285,7 @@ public class StarshipController : NetworkBehaviour
 	{
 		GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
 		float minDist = int.MaxValue;
+
 		GameObject myPlayer = this.gameObject;
 		GameObject closestPlayer = null;
 		foreach (GameObject player in players) {
@@ -287,24 +297,66 @@ public class StarshipController : NetworkBehaviour
 				}
 			}
 		}
+		bool drawCrossHair = false;
 		if (closestPlayer != null) {
-			if (_arrow == null) {
-				_arrow = Instantiate (arrow) as Transform;
-				_arrow.localPosition = new Vector3 (0, 0, 0);
-				_arrow.transform.parent = transform;
+			if (minDist < focusDistance) {
+				Vector3 direction = closestPlayer.transform.position - myPlayer.transform.position;
+				float angle = Vector3.Angle (direction, myPlayer.transform.forward);
+				if (angle < focusAngle) {
+					drawCrossHair = true;
+					if (_arrow != null) {
+						GameObject.Destroy (_arrow.gameObject);
+						_arrow = null;
+					}
+					StarshipController otherStarship = closestPlayer.GetComponent<StarshipController> ();
+					if (_crossHair == null) {
+						_crossHair = (Instantiate (crossHair) as Transform).gameObject.GetComponent<CrossHairBehaviour>();
+						_crossHair.transform.localPosition = new Vector3 (0, 0, 0);
+						_crossHair.gameObject.GetComponent<CrossHairBehaviour>().starShip = otherStarship;
+
+					}
+					_crossHair.transform.LookAt (direction*-1);
+					_crossHair.transform.rotation = Quaternion.LookRotation(direction);
+					_crossHair.transform.position = closestPlayer.transform.position;
+					CmdSetLaserTarget(otherStarship.transform.position);
+					_laser.targetShip = otherStarship;
+					SetLaserTarget (closestPlayer.transform.position);
+				}
 			}
-			Prefs otherPrefs = closestPlayer.GetComponent<StarshipController> ().prefs;
-			Renderer renderer = _arrow.transform.GetComponentsInChildren<Renderer> () [0];
-			Color c = Color.HSVToRGB (otherPrefs.colorHue, otherPrefs.colorSaturation, otherPrefs.colorLuminance);
-			c.a = arrowAlpha;
-			renderer.material.SetColor("_Color", c);
-			_arrow.LookAt (closestPlayer.transform.position);
-			_arrow.localScale = GetArrowScale (myPlayer, closestPlayer);
-			_arrow.transform.position = Vector3.MoveTowards (myPlayer.transform.position, closestPlayer.transform.position, arrowDistance);
+			if (!drawCrossHair) {
+				_laser.targetShip = null;
+				if (_crossHair != null) {
+					GameObject.Destroy (_crossHair.gameObject);
+					_crossHair = null;
+				}
+				if (_arrow == null) {
+					_arrow = Instantiate (arrow) as Transform;
+					_arrow.localPosition = new Vector3 (0, 0, 0);
+					_arrow.transform.parent = transform;
+				}
+				Prefs otherPrefs = closestPlayer.GetComponent<StarshipController> ().prefs;
+				Renderer renderer = _arrow.transform.GetComponentsInChildren<Renderer> () [0];
+				Color c = Color.HSVToRGB (otherPrefs.colorHue, otherPrefs.colorSaturation, otherPrefs.colorLuminance);
+				c.a = arrowAlpha;
+				renderer.material.SetColor("_Color", c);
+				_arrow.LookAt (closestPlayer.transform.position);
+				_arrow.localScale = GetArrowScale (myPlayer, closestPlayer);
+				_arrow.transform.position = Vector3.MoveTowards (myPlayer.transform.position, closestPlayer.transform.position, arrowDistance);
+			}
 		}
-		else if (_arrow != null) {
-			GameObject.Destroy (_arrow.gameObject);
-			_arrow = null;
+		else {
+			if (_arrow != null) {
+				GameObject.Destroy (_arrow.gameObject);
+				_arrow = null;
+			}
+			if (_crossHair != null) {
+				GameObject.Destroy (_crossHair.gameObject);
+				_crossHair = null;
+			}
+		}
+		if (!drawCrossHair) {
+			CmdSetLaserTarget(transform.position + (transform.forward * 1000));
+			SetLaserTarget(transform.position + (transform.forward * 1000));
 		}
 	}
 
@@ -364,13 +416,15 @@ public class StarshipController : NetworkBehaviour
 	public void SetEnergy(float e)
 	{
 		energy = e;
-		if (e <= 0.00001f) {
-			e = 0.00001f; // 0 will crash EnergyBarBehaviour...
-			CmdDestroyStarship ();
-			DestroyStarship ();
+		if (e < 0) {
+			e = 0; // 0 will crash EnergyBarBehaviour...
 		} 
 		if (_energyBar) {
 			_energyBar.UpdateBar (e);
+		}
+		if (e <= 0) {
+			CmdDestroyStarship ();
+			DestroyStarship ();
 		}
 	}
 
@@ -397,16 +451,13 @@ public class StarshipController : NetworkBehaviour
 
 	public void SetLaser(bool doLaser)
 	{
-		Transform laser = transform.Find ("laser");
-		if (doLaser) {
-			laser.gameObject.SetActive (true);
-			laser.localScale = new Vector3 (.1f, .1f, 1000);
-			laser.localPosition = new Vector3 (0, 0, 500);
-		} else {
-			laser.gameObject.SetActive (false);
-			laser.localScale = new Vector3 (.1f, .1f, .1f);
-			laser.localPosition = new Vector3 (0, 0, 0);
-		}
+		if (doLaser) Debug.Log (doLaser);
+		_laser.SetLaser (doLaser);
+	}
+
+	public void SetLaserTarget(Vector3 t)
+	{
+		laserTarget = t;
 	}
 
 	void StartEngineSound()
@@ -427,8 +478,10 @@ public class StarshipController : NetworkBehaviour
 		p.Play ();
 		AudioSource.PlayClipAtPoint (explosionSound, transform.position, 100);
 		Explode ();
-		if (!isLocalPlayer)
+		if (!isLocalPlayer) {
+//			CmdSetActive (false);
 			return;
+		}
 		_waitCoroutine = Wait(p.duration);
 		StartCoroutine(_waitCoroutine);
 	}
@@ -494,7 +547,16 @@ public class StarshipController : NetworkBehaviour
 		DestroyStarship ();
 	}
 
+	[Command]
+	void CmdSetLaserTarget(Vector3 t) {
+		SetLaserTarget (t);
+	}
 
+	[Command]
+	void CmdSetActive(bool a) {
+		gameObject.SetActive (a);
+	}
+		
 	[ClientRpc]
 	void RpcGameOver()
 	{ 

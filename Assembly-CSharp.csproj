@@ -45,6 +45,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+     <Compile Include="Assets\CrossHairBehaviour.cs" />
      <Compile Include="Assets\Mesh Explosion\Demo\ClickOrTapToExplode.cs" />
      <Compile Include="Assets\Mesh Explosion\Demo\ReloadScene.cs" />
      <Compile Include="Assets\Mesh Explosion\Internal\DestroyAfterTime.cs" />

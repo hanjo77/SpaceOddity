@@ -1,17 +1,11 @@
 ﻿<Properties StartupItem="Assembly-CSharp.csproj">
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="Unity.Instance.Unity Editor" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/StarshipController.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/LaserController.cs">
     <Files>
-      <File FileName="Assets/Scripts/StarshipController.cs" Line="217" Column="1" />
-      <File FileName="Assets/Scripts/EnergyBarBehaviour.cs" Line="40" Column="1" />
-      <File FileName="Assets/Scripts/LobbyManager.cs" Line="48" Column="1" />
-      <File FileName="Assets/Scripts/LaserController.cs" Line="18" Column="1" />
-      <File FileName="Assets/Scripts/Plugins/Prefs.cs" Line="1" Column="1" />
+      <File FileName="Assets/Scripts/StarshipController.cs" Line="509" Column="1" />
+      <File FileName="Assets/Scripts/LaserController.cs" Line="43" Column="35" />
+      <File FileName="Assets/Scripts/LobbyManager.cs" Line="239" Column="1" />
       <File FileName="Assets/Scripts/MenuBehaviour.cs" Line="43" Column="1" />
-      <File FileName="Assets/Scripts/MarsBehaviour.cs" Line="1" Column="1" />
-      <File FileName="Assets/Scripts/PlayerListBehaviour.cs" Line="1" Column="1" />
-      <File FileName="Assets/Scripts/GameHUDBehaviour.cs" Line="1" Column="1" />
-      <File FileName="Assets/Mesh Explosion/Editor/MeshExploderEditor.cs" Line="8" Column="22" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
@@ -28,11 +22,13 @@
       <Breakpoint file="/Users/hanjo/Workspace/Unity3D/Space Oddity/Assets/Scripts/StarshipController.cs" line="54" column="1" />
       <Breakpoint file="/Users/hanjo/Workspace/Unity3D/Space Oddity/Assets/Scripts/LobbyManager.cs" line="193" column="21" />
       <Breakpoint file="/Users/hanjo/Workspace/Space Oddity/Assets/Scripts/MenuBehaviour.cs" line="43" column="1" />
-      <Breakpoint file="/Users/hanjo/Workspace/Space Oddity/Assets/Scripts/LobbyManager.cs" line="47" column="1" />
       <Breakpoint file="/Users/hanjo/Workspace/Space Oddity/Assets/Scripts/LobbyManager.cs" line="161" column="1" />
       <Breakpoint file="/Users/hanjo/Workspace/Space Oddity/Assets/Scripts/LobbyManager.cs" line="239" column="15" />
       <Breakpoint file="/Users/hanjo/Workspace/Space Oddity/Assets/Scripts/LobbyManager.cs" line="235" column="1" />
       <Breakpoint file="/Users/hanjo/Workspace/Space Oddity/Assets/Scripts/StarshipController.cs" line="243" column="1" />
+      <Breakpoint file="/Users/hanjo/Workspace/Space Oddity/Assets/Scripts/StarshipController.cs" line="411" column="1" />
+      <Breakpoint file="/Users/hanjo/Workspace/Space Oddity/Assets/Scripts/StarshipController.cs" line="396" column="1" />
+      <Breakpoint file="/Users/hanjo/Workspace/Space Oddity/Assets/Scripts/LaserController.cs" line="32" column="1" />
     </BreakpointStore>
   </MonoDevelop.Ide.DebuggingService.Breakpoints>
   <MonoDevelop.Ide.DebuggingService.PinnedWatches />

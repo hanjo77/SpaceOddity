@@ -43,10 +43,12 @@ public class EnergyBarBehaviour : MonoBehaviour {
     }
 
 	public void UpdateBar(float barValue) {
-		int tmpWidth = (int)(barValue * (float)_innerWidth);
-		_colorHue = minColorHue+((maxColorHue-minColorHue)*barValue);
-		_rectBar = new Rect (_leftPadding, padding, tmpWidth, _innerHeight);
-		_imgBar = GetRectangle (Color.HSVToRGB (_colorHue, colorSaturation, colorValue), tmpWidth, _innerHeight);
+		if (barValue > 0) {
+			int tmpWidth = (int)(barValue * (float)_innerWidth);
+			_colorHue = minColorHue+((maxColorHue-minColorHue)*barValue);
+			_rectBar = new Rect (_leftPadding, padding, tmpWidth, _innerHeight);
+			_imgBar = GetRectangle (Color.HSVToRGB (_colorHue, colorSaturation, colorValue), tmpWidth, _innerHeight);
+		}
 	}
 
     Texture2D GetRectangle(Color color, int width, int height)
