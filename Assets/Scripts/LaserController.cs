@@ -18,14 +18,16 @@ public class LaserController : MonoBehaviour {
 				
 	// Update is called once per frame
 	void Update () {
-		if (_isActive) {
+		if (_isActive) {			
+			_lineRenderer.enabled = false;
+			_lineRenderer.SetVertexCount (2);
 			_lineRenderer.SetPositions (new Vector3[2] { 
 				sourceShip.transform.position,
 				sourceShip.laserTarget
 			});
-			_lineRenderer.SetVertexCount (2);
+			_lineRenderer.enabled = true;
 			if (targetShip) {
-				targetShip.DecreaseEnergy (targetShip.energyDecrease, sourceShip);
+				targetShip.DecreaseEnergy();
 			}
 		}
 	}
@@ -33,7 +35,7 @@ public class LaserController : MonoBehaviour {
 	public void SetLaser(bool doLaser) {
 		_isActive = doLaser;
 		if (doLaser) {
-			if (!_audio.isPlaying) {
+			if ((sourceShip.isLocalPlayer || (targetShip && targetShip.isLocalPlayer)) && !_audio.isPlaying) {
 				_audio.Play();
 			}
 			gameObject.SetActive (true);

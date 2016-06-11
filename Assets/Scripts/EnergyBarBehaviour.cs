@@ -43,7 +43,7 @@ public class EnergyBarBehaviour : MonoBehaviour {
     }
 
 	public void UpdateBar(float barValue) {
-		if (barValue > 0) {
+		if (barValue >= 0.001f) {
 			int tmpWidth = (int)(barValue * (float)_innerWidth);
 			_colorHue = minColorHue+((maxColorHue-minColorHue)*barValue);
 			_rectBar = new Rect (_leftPadding, padding, tmpWidth, _innerHeight);
