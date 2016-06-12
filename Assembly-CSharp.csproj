@@ -45,7 +45,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-     <Compile Include="Assets\CrossHairBehaviour.cs" />
      <Compile Include="Assets\Mesh Explosion\Demo\ClickOrTapToExplode.cs" />
      <Compile Include="Assets\Mesh Explosion\Demo\ReloadScene.cs" />
      <Compile Include="Assets\Mesh Explosion\Internal\DestroyAfterTime.cs" />
@@ -54,6 +53,7 @@
      <Compile Include="Assets\Mesh Explosion\Internal\MeshExplosion.cs" />
      <Compile Include="Assets\Mesh Explosion\MeshExploder.cs" />
      <Compile Include="Assets\Scripts\CameraFollow.cs" />
+     <Compile Include="Assets\Scripts\CrossHairBehaviour.cs" />
      <Compile Include="Assets\Scripts\DestructibleObject.cs" />
      <Compile Include="Assets\Scripts\EnergyBarBehaviour.cs" />
      <Compile Include="Assets\Scripts\GameHUDBehaviour.cs" />
@@ -69,7 +69,10 @@
      <None Include="Assets\Fonts\orbitron\OFL.txt" />
      <None Include="Assets\Standard Assets\ParticleSystems\Shaders\PriorityParticleAlpha.shader" />
      <None Include="Assets\Standard Assets\ParticleSystems\ParticleSystemsGuidelines.txt" />
+     <None Include="Assets\Standard Assets\Fonts\OpenSans\License!.txt" />
+     <None Include="Assets\Standard Assets\CrossPlatformInput\CrossPlatformInputGuidelines.txt" />
      <None Include="Assets\Standard Assets\ParticleSystems\Shaders\PriorityParticleAddSoft.shader" />
+     <None Include="Assets\Mesh Explosion\Read Me.txt" />
      <None Include="Assets\Standard Assets\ParticleSystems\Shaders\PriorityParticleAdd.shader" />
  <Reference Include="UnityEngine.Networking">
  <HintPath>/Applications/Unity/Unity.app/Contents/UnityExtensions/Unity/Networking/UnityEngine.Networking.dll</HintPath>

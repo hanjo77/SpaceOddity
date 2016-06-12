@@ -22,16 +22,17 @@ public class StarshipController : NetworkBehaviour
 	public Transform crossHair;
 	private CrossHairBehaviour _crossHair;
 	[SyncVar]public Vector3 laserTarget;
-	public float focusDistance = 200;
+	public float focusDistance = 100;
 	public float focusAngle = 30;
 	public float crossHairDistance = 2;
+	public float maxCrosshairDistance = 50;
 	float accel, decel;
 	[SyncVar(hook = "OnPrefsChanged")]private Prefs _prefs = new Prefs();
 	public Transform arrow;
 	public ParticleSystem explosion;
 	private Transform _arrow;
 	private Slider _slider;
-	private bool _isDestroying = false;
+	[SyncVar]bool isDestroying = false;
 	private IEnumerator _waitCoroutine;
 	public float arrowDistance = 5f;
 	public float energyDecrease = .1f;
@@ -63,8 +64,8 @@ public class StarshipController : NetworkBehaviour
 	StarshipController otherStarship;
 
 	void Start() {
-		_explosion = ((GameObject)Instantiate (explosion.gameObject, transform.position, transform.rotation)).GetComponent<ParticleSystem>();
-		_laser = transform.Find ("laser").gameObject.GetComponent<LaserController>();
+		if (!_laser)
+			_laser = transform.Find ("laser").gameObject.GetComponent<LaserController>();
 		_laser.sourceShip = this;
 		SetSpeed (cruiseSpeed);
 		SetEnergy (_maxEnergy);
@@ -93,12 +94,12 @@ public class StarshipController : NetworkBehaviour
 			_slider.onValueChanged.AddListener (delegate { OnSliderChangedSpeed ();});
 		}
 		GameObject energyBarObject = GameObject.FindGameObjectWithTag ("EnergyBar");
-		if (energyBarObject) 
+		if (energyBarObject && !_energyBar) 
 		{
 			_energyBar = energyBarObject.GetComponent<EnergyBarBehaviour>();
-			CmdSetEnergy (_maxEnergy);
-			SetEnergy (_maxEnergy);
 		}
+		CmdSetEnergy (_maxEnergy);
+		SetEnergy (_maxEnergy);
 		StartEngineSound ();
 		_prefs.Load ();
 		CmdSyncPrefs (_prefs);
@@ -112,7 +113,7 @@ public class StarshipController : NetworkBehaviour
 		Debug.Log ("Update starship");
 		// Set ship translation, rotation and draw laser
 
-		if (_isDestroying) {
+		if (isDestroying) {
 			if (_engineAudioSource && _engineAudioSource.isPlaying) _engineAudioSource.Stop ();
 			return;
 		}
@@ -124,6 +125,8 @@ public class StarshipController : NetworkBehaviour
 		SetLaserTarget (laserTarget);
 		SetSpeed (speed);
 		SetEnergy (energy);
+		SetDestroying (isDestroying);
+		Resources.UnloadUnusedAssets ();
 
 		if (!isLocalPlayer) return;
 
@@ -241,12 +244,13 @@ public class StarshipController : NetworkBehaviour
 		NetworkStartPosition[] spawnPoints = FindObjectsOfType<NetworkStartPosition> ();
 		Vector3 spawnPoint = spawnPoints [Random.Range (0, spawnPoints.Length)].transform.position;
 		gameObject.transform.position = spawnPoint;
-		_isDestroying = false;
 		SetEnergy (_maxEnergy);
 		CmdSetEnergy (_maxEnergy);
 		if (isLocalPlayer) {
 			StartEngineSound ();
 		}
+		SetDestroying(false);
+		CmdSetDestroying (false);
 	}
 
 	public void TrackCameraTo(GameObject go) 
@@ -268,10 +272,12 @@ public class StarshipController : NetworkBehaviour
 	}
 
 	public void DestroyStarship() {
+		SetDestroying(true);
+		CmdSetDestroying (true);
+		CmdStartExplosion ();
 		StartExplosion ();
-		_isDestroying = true;
 		LobbyManager.instance.OpenLobbyInGame (true);
-		Respawn ();
+		// Respawn ();
 	}
 
 	void OnDestroy() {
@@ -294,7 +300,7 @@ public class StarshipController : NetworkBehaviour
 		foreach (GameObject player in players) {
 			if (player != myPlayer) {
 				float dist = Vector3.Distance (player.transform.position, myPlayer.transform.position);
-				if (dist < minDist && player.GetComponent<StarshipController> ()) {
+				if (dist < minDist && player.tag.Contains("Player")) {
 					minDist = dist;
 					closestPlayer = player;
 				}
@@ -309,9 +315,11 @@ public class StarshipController : NetworkBehaviour
 
 	private void ShowClosestNeighbor() 
 	{
+		FindOtherStarship ();
 		bool drawCrossHair = false;
+		float distance = Vector3.Distance (transform.position, otherStarship.transform.position);
 		if (otherStarship != null) {
-			if (Vector3.Distance(transform.position, otherStarship.transform.position) < focusDistance) {
+			if (distance < focusDistance) {
 				Vector3 direction = otherStarship.transform.position - transform.position;
 				float angle = Vector3.Angle (direction, transform.forward);
 				if (angle < focusAngle) {
@@ -323,17 +331,23 @@ public class StarshipController : NetworkBehaviour
 					if (_crossHair == null) {
 						_crossHair = (Instantiate (crossHair) as Transform).gameObject.GetComponent<CrossHairBehaviour>();
 						_crossHair.transform.localPosition = new Vector3 (0, 0, 0);
-						_crossHair.gameObject.GetComponent<CrossHairBehaviour>().starShip = otherStarship;
+						_crossHair.SetStarship(otherStarship);
 
 					}
+					float crossHairDistance = distance - maxCrosshairDistance;
+					if (crossHairDistance < 0)
+						crossHairDistance = 0;
+					Vector3 crossHairPosition = Vector3.MoveTowards(
+						otherStarship.transform.position, 
+						transform.position, 
+						crossHairDistance);
 					_crossHair.transform.LookAt (direction*-1);
 					_crossHair.transform.rotation = Quaternion.LookRotation(direction);
-					_crossHair.transform.position = otherStarship.transform.position;
+					_crossHair.transform.position = crossHairPosition;
 					CmdSetLaserTarget(otherStarship.transform.position);
 				}
 			}
 			if (!drawCrossHair) {
-				_laser.targetShip = null;
 				if (_crossHair != null) {
 					GameObject.Destroy (_crossHair.gameObject);
 					_crossHair = null;
@@ -402,6 +416,11 @@ public class StarshipController : NetworkBehaviour
 		_boost = doBoost;
 	}
 
+	public void SetDestroying(bool d)
+	{
+		isDestroying = d;
+	}
+
 	public void SetSpeed(float s)
 	{
 		speed = s;
@@ -413,16 +432,20 @@ public class StarshipController : NetworkBehaviour
 
 	public void DecreaseEnergy()
 	{
-		energy -= energyDecrease;
-		if (energy < 0) {
-			energy = 0;
-			prefs.ScoreReduce ();
-			if (otherStarship) {
-				otherStarship.prefs.ScoreAdd ();
+		if (!isDestroying) {
+			energy -= energyDecrease;
+			if (energy < 0) {
+				energy = 0;
+				prefs.ScoreReduce ();
+				if (otherStarship) {
+					otherStarship.prefs.ScoreAdd ();
+				}
+				DestroyStarship ();
 			}
-			DestroyStarship ();
+			if (isLocalPlayer)
+				CmdSetEnergy (energy);
+			SetEnergy (energy);
 		}
-//		CmdSetEnergy (energy);
 	}
 
 	public void SetEnergy(float e)
@@ -453,7 +476,7 @@ public class StarshipController : NetworkBehaviour
 	public IEnumerator Wait(float waitTime) {
 		while (true) {
 			yield return new WaitForSeconds(waitTime);
-			gameObject.SetActive (false);
+			Respawn ();
 			LobbyManager.instance.OpenLobbyInGame (true);
 		}
 	}
@@ -466,7 +489,9 @@ public class StarshipController : NetworkBehaviour
 
 	public void SetLaserTarget(Vector3 t)
 	{
-		if (otherStarship && Vector3.Distance(otherStarship.transform.position, transform.position) <= focusDistance) {
+		if (otherStarship 
+			&& Vector3.Distance(otherStarship.transform.position, transform.position) <= focusDistance
+			&& Vector3.Angle ((otherStarship.transform.position - transform.position), transform.forward) <= focusAngle) {
 			_laser.targetShip = otherStarship;
 		} else {
 			_laser.targetShip = null;
@@ -487,14 +512,11 @@ public class StarshipController : NetworkBehaviour
 
 	void StartExplosion()
 	{
+		_explosion = ((GameObject)Instantiate (explosion.gameObject, transform.position, transform.rotation)).GetComponent<ParticleSystem>();
 		_explosion.transform.parent = transform;
 		_explosion.Play ();
 		AudioSource.PlayClipAtPoint (explosionSound, transform.position, 100);
 		Explode ();
-//		if (!isLocalPlayer) {
-////			CmdSetActive (false);
-//			return;
-//		}
 		_waitCoroutine = Wait(_explosion.duration);
 		StartCoroutine(_waitCoroutine);
 	}
@@ -563,6 +585,11 @@ public class StarshipController : NetworkBehaviour
 	[Command]
 	void CmdSetLaserTarget(Vector3 t) {
 		SetLaserTarget (t);
+	}
+
+	[Command]
+	void CmdSetDestroying(bool d) {
+		SetDestroying (d);
 	}
 
 	[Command]

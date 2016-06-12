@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using System.Collections;
 
 [RequireComponent(typeof(AudioSource))]
 public class LaserController : MonoBehaviour {
@@ -12,38 +11,44 @@ public class LaserController : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-		_lineRenderer = gameObject.GetComponent<LineRenderer> ();
-		_audio = GetComponent<AudioSource>();
+		if (!_lineRenderer)
+			_lineRenderer = gameObject.GetComponent<LineRenderer> ();
+		if (!_audio)
+			_audio = GetComponent<AudioSource>();
 	}
 				
 	// Update is called once per frame
 	void Update () {
 		if (_isActive) {			
-			_lineRenderer.enabled = false;
 			_lineRenderer.SetVertexCount (2);
 			_lineRenderer.SetPositions (new Vector3[2] { 
 				sourceShip.transform.position,
 				sourceShip.laserTarget
 			});
-			_lineRenderer.enabled = true;
 			if (targetShip) {
 				targetShip.DecreaseEnergy();
 			}
 		}
-	}
+        else
+        {
+            _lineRenderer.SetPositions(new Vector3[2] {
+                sourceShip.transform.position,
+                sourceShip.transform.position
+            });
+        }
+    }
 
 	public void SetLaser(bool doLaser) {
 		_isActive = doLaser;
 		if (doLaser) {
-			if ((sourceShip.isLocalPlayer || (targetShip && targetShip.isLocalPlayer)) && !_audio.isPlaying) {
+			gameObject.SetActive (true);
+			if ((sourceShip.isLocalPlayer || (targetShip && targetShip.isLocalPlayer))
+                && !_audio.isPlaying && _audio.enabled) {
 				_audio.Play();
 			}
-			gameObject.SetActive (true);
+			Update ();
 		} else {
 			gameObject.SetActive (false);
-			_lineRenderer.SetPositions (new Vector3[] {
-				sourceShip.transform.position 
-			});
 		}
 	}
 }
