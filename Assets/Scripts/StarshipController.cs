@@ -24,7 +24,6 @@ public class StarshipController : NetworkBehaviour
 	[SyncVar]public Vector3 laserTarget;
 	public float focusDistance = 100;
 	public float focusAngle = 30;
-	public float crossHairDistance = 2;
 	public float maxCrosshairDistance = 50;
 	float accel, decel;
 	[SyncVar(hook = "OnPrefsChanged")]private Prefs _prefs = new Prefs();
@@ -32,7 +31,7 @@ public class StarshipController : NetworkBehaviour
 	public ParticleSystem explosion;
 	private Transform _arrow;
 	private Slider _slider;
-	[SyncVar]bool isDestroying = false;
+	[SyncVar(hook = "OnDestroyingChanged")]bool isDestroying = false;
 	private IEnumerator _waitCoroutine;
 	public float arrowDistance = 5f;
 	public float energyDecrease = .1f;
@@ -113,19 +112,19 @@ public class StarshipController : NetworkBehaviour
 		Debug.Log ("Update starship");
 		// Set ship translation, rotation and draw laser
 
+
 		if (isDestroying) {
 			if (_engineAudioSource && _engineAudioSource.isPlaying) _engineAudioSource.Stop ();
 			return;
 		}
 
+		SetEnergy (energy);
 		FindOtherStarship ();
 		SetTranslation(motion);
 		SetRotation (shipRot);
 		SetLaser(laserActive);
 		SetLaserTarget (laserTarget);
 		SetSpeed (speed);
-		SetEnergy (energy);
-		SetDestroying (isDestroying);
 		Resources.UnloadUnusedAssets ();
 
 		if (!isLocalPlayer) return;
@@ -224,7 +223,6 @@ public class StarshipController : NetworkBehaviour
 		this.ShowClosestNeighbor ();
 		CmdSetTranslation(motion);
 		CmdSetRotation (shipRot);
-		CmdSetEnergy (energy);
 		CmdSetLaser(laserActive);
 		CmdSetSpeed (speed);
 	}
@@ -249,8 +247,8 @@ public class StarshipController : NetworkBehaviour
 		if (isLocalPlayer) {
 			StartEngineSound ();
 		}
-		SetDestroying(false);
 		CmdSetDestroying (false);
+		SetDestroying(false);
 	}
 
 	public void TrackCameraTo(GameObject go) 
@@ -269,14 +267,37 @@ public class StarshipController : NetworkBehaviour
 
 	void OnEnergyChanged(float e) {
 		SetEnergy (e);
+		if (_energyBar && e >= 0) {
+			_energyBar.UpdateBar (e);
+		}
+		if (energy <= 0.1f) {
+			DestroyStarship ();
+			CmdDestroyStarship ();
+		}
+	}
+
+	void OnDestroyingChanged(bool d) {
+		SetDestroying (d);
+		if (d) {
+			DestroyStarship ();
+		}
 	}
 
 	public void DestroyStarship() {
-		SetDestroying(true);
-		CmdSetDestroying (true);
+		if (otherStarship) {
+			otherStarship.prefs.ScoreAdd ();
+			otherStarship.otherStarship = null;
+			otherStarship = null;
+		}
+		if (_crossHair && _crossHair.starShip == this) {
+			_crossHair = null;
+		}
 		CmdStartExplosion ();
 		StartExplosion ();
+		prefs.ScoreReduce ();
 		LobbyManager.instance.OpenLobbyInGame (true);
+		CmdSetDestroying(true);
+		SetDestroying(true);
 		// Respawn ();
 	}
 
@@ -317,8 +338,8 @@ public class StarshipController : NetworkBehaviour
 	{
 		FindOtherStarship ();
 		bool drawCrossHair = false;
-		float distance = Vector3.Distance (transform.position, otherStarship.transform.position);
 		if (otherStarship != null) {
+			float distance = Vector3.Distance (transform.position, otherStarship.transform.position);
 			if (distance < focusDistance) {
 				Vector3 direction = otherStarship.transform.position - transform.position;
 				float angle = Vector3.Angle (direction, transform.forward);
@@ -381,7 +402,8 @@ public class StarshipController : NetworkBehaviour
 			otherStarship = null;
 		}
 		if (!drawCrossHair) {
-			CmdSetLaserTarget(transform.position + (transform.forward * 100));
+			CmdSetLaserTarget(transform.position + (transform.forward.normalized * 100));
+			SetLaserTarget(transform.position + (transform.forward * 100));
 		}
 	}
 
@@ -434,16 +456,7 @@ public class StarshipController : NetworkBehaviour
 	{
 		if (!isDestroying) {
 			energy -= energyDecrease;
-			if (energy < 0) {
-				energy = 0;
-				prefs.ScoreReduce ();
-				if (otherStarship) {
-					otherStarship.prefs.ScoreAdd ();
-				}
-				DestroyStarship ();
-			}
-			if (isLocalPlayer)
-				CmdSetEnergy (energy);
+			CmdSetEnergy (energy);
 			SetEnergy (energy);
 		}
 	}
@@ -451,13 +464,6 @@ public class StarshipController : NetworkBehaviour
 	public void SetEnergy(float e)
 	{
 		energy = e;
-		if (_energyBar && e >= .01f) {
-			_energyBar.UpdateBar (e);
-		}
-		if (e <= 0) {
-			CmdDestroyStarship ();
-			DestroyStarship ();
-		}
 	}
 
 	public void SetName(string name)

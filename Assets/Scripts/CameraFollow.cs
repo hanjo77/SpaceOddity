@@ -21,10 +21,11 @@ public class CameraFollow : MonoBehaviour
 
 			transform.position = Vector3.Lerp (transform.position, wantedPosition, Time.deltaTime * damping);
 			if (smoothRotation) {
-				var wantedRotation = Quaternion.LookRotation(target.position - transform.position, target.up);
+				var wantedRotation = Quaternion.LookRotation (target.position - transform.position, target.up);
 				transform.rotation = Quaternion.Slerp (transform.rotation, wantedRotation, Time.deltaTime * rotationDamping);
+			} else {
+				transform.LookAt (target, target.up);
 			}
-			else transform.LookAt (target, target.up);
 		}
 	}
 }

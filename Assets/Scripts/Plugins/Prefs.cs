@@ -32,6 +32,9 @@ public class Prefs
 
 	public void ScoreReduce() {
 		score--;
+		if (score < 0) {
+			score = 0;
+		}
 	}
 
 	public void SetAll(ref GameObject starship)
