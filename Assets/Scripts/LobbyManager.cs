@@ -215,10 +215,10 @@ public class LobbyManager : NetworkManager
 
 	private static string GetLocalIPAddress()
 	{
-//        IReadOnlyList<HostName> hosts = System.Net.NetworkInformation.GetHostNames();
-//        foreach (HostName aName in hosts)
+//		IReadOnlyList<HostName> hosts = NetworkInformation.GetHostNames();
+//		foreach (HostName aName in hosts)
 //        {
-//            if (aName.Type == HostNameType.Ipv4)
+//			if (aName.Type == HostNameType.Ipv4)
 //            {
 //                return aName;
 //            }
